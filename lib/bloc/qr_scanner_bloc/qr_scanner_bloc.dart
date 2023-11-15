@@ -20,15 +20,14 @@ class QrScannerBloc extends Bloc<QrScannerEvent, QrScannerState> {
       }
     });
 
-    on<OnReturnFromScanned>((event, emit) async {
-      await state.mobileScannerController?.start();
-      emit(state.copyWith(flashOn: flashOn, data: null));
-
-      if (flashOn) {
-        state.mobileScannerController?.toggleTorch();
+    on<OnReturn>((event, emit) async {
+      if (event.startCamera ?? true) {
+        await state.mobileScannerController?.start();
       }
 
+      flashOn = false;
       scanned = false;
+      emit(state.copyWith(flashOn: flashOn, data: null));
     });
   }
 
