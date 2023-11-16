@@ -29,9 +29,6 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         BlocProvider.of<QrScannerBloc>(context)
             .add(OnReturn(startCamera: false));
         break;
-      case AppLifecycleState.inactive:
-        // Nothing for now
-        break;
       default:
         break;
     }
@@ -76,20 +73,110 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                 },
               ),
               const SizedBox(
-                width: 10,
+                width: 5,
               )
             ],
           ),
           drawer: SafeArea(
             child: Drawer(
-              backgroundColor: Theme.of(context).colorScheme.background,
-              child: ListView(
+              shape: const RoundedRectangleBorder(
+                  borderRadius: BorderRadius.only(
+                      topRight: Radius.circular(20),
+                      bottomRight: Radius.circular(20))),
+              child: Column(
                 children: [
                   DrawerHeader(
-                      child: Text(
-                    "Scan\nMaster",
-                    style: drawerTextStyle(),
-                  ))
+                      decoration: BoxDecoration(
+                          color: Theme.of(context)
+                              .colorScheme
+                              .secondaryContainer
+                              .withOpacity(.5)),
+                      child: Container(
+                        alignment: Alignment.bottomLeft,
+                        child: RichText(
+                          text: TextSpan(
+                              style: drawerTextStyle(
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onBackground),
+                              children: [
+                                const TextSpan(text: "Scan Master"),
+                                TextSpan(
+                                    text: "\nDeveloped by Sagar Patel",
+                                    style: defaultTextStyle(fontSize: 12))
+                              ]),
+                        ),
+                      )),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.qr_code_rounded,
+                      size: 26,
+                    ),
+                    title: Text(
+                      "Create",
+                      style: defaultTextStyle(),
+                    ),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15)),
+                    dense: true,
+                    onTap: () {},
+                  ),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.star_border_rounded,
+                      size: 26,
+                    ),
+                    title: Text(
+                      "Favorites",
+                      style: defaultTextStyle(),
+                    ),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15)),
+                    dense: true,
+                    onTap: () {},
+                  ),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.history_rounded,
+                      size: 26,
+                    ),
+                    title: Text(
+                      "History",
+                      style: defaultTextStyle(),
+                    ),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15)),
+                    dense: true,
+                    onTap: () {},
+                  ),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.settings_outlined,
+                      size: 26,
+                    ),
+                    title: Text(
+                      "Settings",
+                      style: defaultTextStyle(),
+                    ),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15)),
+                    dense: true,
+                    onTap: () {},
+                  ),
+                  ListTile(
+                    leading: const Icon(
+                      Icons.info_outline_rounded,
+                      size: 26,
+                    ),
+                    title: Text(
+                      "About",
+                      style: defaultTextStyle(),
+                    ),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(15)),
+                    dense: true,
+                    onTap: () {},
+                  ),
                 ],
               ),
             ),
@@ -131,7 +218,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     Theme.of(context).colorScheme.background),
                             child: Row(
                               children: [
-                                const Icon(Icons.qr_code_2_rounded),
+                                const Icon(Icons.qr_code_rounded),
                                 const SizedBox(
                                   width: 5,
                                 ),
@@ -151,5 +238,93 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
       },
     );
+  }
+
+  Future<void> showOptions() async {
+    await showModalBottomSheet(
+      context: context,
+      showDragHandle: true,
+      useSafeArea: true,
+      builder: (context) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(
+                Icons.qr_code_rounded,
+                size: 26,
+              ),
+              title: Text(
+                "Create",
+                style: defaultTextStyle(),
+              ),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15)),
+              dense: true,
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.star_border_rounded,
+                size: 26,
+              ),
+              title: Text(
+                "Favorites",
+                style: defaultTextStyle(),
+              ),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15)),
+              dense: true,
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.history_rounded,
+                size: 26,
+              ),
+              title: Text(
+                "History",
+                style: defaultTextStyle(),
+              ),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15)),
+              dense: true,
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.color_lens_outlined,
+                size: 26,
+              ),
+              title: Text(
+                "Apperance",
+                style: defaultTextStyle(),
+              ),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15)),
+              dense: true,
+              onTap: () {},
+            ),
+            ListTile(
+              leading: const Icon(
+                Icons.settings_outlined,
+                size: 26,
+              ),
+              title: Text(
+                "Settings",
+                style: defaultTextStyle(),
+              ),
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(15)),
+              dense: true,
+              onTap: () {},
+            ),
+          ],
+        ),
+      ),
+    );
+
+    return;
   }
 }

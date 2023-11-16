@@ -15,7 +15,15 @@ String getDisplayValue(Barcode barcode) {
     case BarcodeType.url:
       text = _getTextFromUrl(barcode);
       break;
+    case BarcodeType.phone:
+      text = _getTextFromPhone(barcode);
+      break;
+    case BarcodeType.wifi:
+      text = _getTextFromWifi(barcode);
+      break;
     default:
+      text = barcode.displayValue ?? "Unknown";
+      break;
   }
   return text;
 }
@@ -43,14 +51,17 @@ String _getTextFromContact(Barcode barcode) {
 
   if (barcode.contactInfo != null) {
     if (barcode.contactInfo?.name != null) {
-      text = "Name: ${barcode.contactInfo!.name}\n";
+      text = "Name: ${barcode.contactInfo!.name?.formattedName}\n";
     }
 
     if (barcode.contactInfo?.phones != null) {
-      text += "Number: ";
+      text += "Phone: ";
+
+      int completedPhone = 0;
 
       for (var phone in barcode.contactInfo!.phones) {
-        text += "${phone.number}, ";
+        text += "${phone.number}${completedPhone > 0 ? ", " : ""}";
+        completedPhone++;
       }
     }
   }
@@ -62,7 +73,7 @@ String _getTextFromSms(Barcode barcode) {
   String text = "";
 
   if (barcode.sms != null) {
-    "Phone: ${barcode.sms!.phoneNumber}";
+    text = "Phone: ${barcode.sms!.phoneNumber}";
 
     if (barcode.sms?.message != null) {
       text += "\nMessage: ${barcode.sms?.message}";
@@ -76,11 +87,57 @@ String _getTextFromUrl(Barcode barcode) {
   String text = "";
 
   if (barcode.url != null) {
-    if (barcode.url?.title != null) {
+    if ((barcode.url?.title ?? "").isNotEmpty) {
       text = "Title: ${barcode.url!.title}\n";
     }
 
     text += "Url: ${barcode.url?.url}";
+  }
+
+  return text;
+}
+
+String _getTextFromPhone(Barcode barcode) {
+  String text = "";
+
+  if (barcode.phone != null) {
+    text = "Phone: ${barcode.phone?.number}";
+  }
+
+  return text;
+}
+
+String _getTextFromWifi(Barcode barcode) {
+  String text = "";
+
+  if (barcode.wifi != null) {
+    text = "SSID: ${barcode.wifi!.ssid}";
+
+    if (barcode.wifi?.password != null) {
+      text += "\nPassword: ${barcode.wifi?.password}";
+    }
+
+    if (barcode.wifi?.encryptionType != null) {
+      String type = "";
+
+      switch (barcode.wifi?.encryptionType) {
+        case EncryptionType.none:
+          type = "NONE";
+          break;
+        case EncryptionType.wep:
+          type = "WEP";
+          break;
+        case EncryptionType.wpa:
+          type = "WPA";
+          break;
+        case EncryptionType.open:
+          type = "OPEN";
+          break;
+        default:
+      }
+
+      text += "\nType: $type";
+    }
   }
 
   return text;
