@@ -8,7 +8,7 @@ class QrScannerState {
 
   final MobileScannerController? mobileScannerController;
   final bool? flashOn;
-  final BarcodeCapture? data;
+  final ScannedModel? data;
 
   factory QrScannerState.initial() {
     MobileScannerController controller =
@@ -17,7 +17,7 @@ class QrScannerState {
         mobileScannerController: controller, flashOn: false, data: null);
   }
 
-  QrScannerState copyWith({bool? flashOn, BarcodeCapture? data}) {
+  QrScannerState copyWith({bool? flashOn, ScannedModel? data}) {
     return QrScannerState._(
         mobileScannerController: mobileScannerController,
         flashOn: flashOn ?? this.flashOn,

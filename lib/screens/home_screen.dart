@@ -26,8 +26,7 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.resumed:
-        BlocProvider.of<QrScannerBloc>(context)
-            .add(OnReturn(startCamera: false));
+        BlocProvider.of<QrScannerBloc>(context).add(OnReturn());
         break;
       default:
         break;
@@ -38,6 +37,13 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
+  }
+
+  Future<void> loadScreen(String name) async {
+    BlocProvider.of<QrScannerBloc>(context).add(PauseCamera());
+    await context.push(name);
+    // ignore: use_build_context_synchronously
+    BlocProvider.of<QrScannerBloc>(context).add(StartCamera());
   }
 
   @override
@@ -107,20 +113,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                               ]),
                         ),
                       )),
-                  ListTile(
-                    leading: const Icon(
-                      Icons.qr_code_rounded,
-                      size: 26,
-                    ),
-                    title: Text(
-                      "Create",
-                      style: defaultTextStyle(),
-                    ),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15)),
-                    dense: true,
-                    onTap: () {},
-                  ),
+                  // ListTile(
+                  //   leading: const Icon(
+                  //     Icons.qr_code_rounded,
+                  //     size: 26,
+                  //   ),
+                  //   title: Text(
+                  //     "Create",
+                  //     style: defaultTextStyle(),
+                  //   ),
+                  //   shape: RoundedRectangleBorder(
+                  //       borderRadius: BorderRadius.circular(15)),
+                  //   dense: true,
+                  //   onTap: () {
+                  //     Navigator.pop(context);
+                  //     context.go("/create");
+                  //   },
+                  // ),
                   ListTile(
                     leading: const Icon(
                       Icons.star_border_rounded,
@@ -147,7 +156,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15)),
                     dense: true,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pop(context);
+                      loadScreen("/history");
+                    },
                   ),
                   ListTile(
                     leading: const Icon(
@@ -192,7 +204,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     BlocProvider.of<QrScannerBloc>(context)
                         .add(OnScannedData(barcodes));
                   },
-                  controller: state.mobileScannerController!,
+                  controller: state.mobileScannerController ??
+                      MobileScannerController(),
                   overlay: Container(
                     decoration: ShapeDecoration(
                         shape: QrScannerOverlay(
@@ -210,7 +223,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       SizedBox(
                         height: 50,
                         child: ElevatedButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              loadScreen("/history");
+                            },
                             style: ElevatedButton.styleFrom(
                                 foregroundColor:
                                     Theme.of(context).colorScheme.onBackground,
@@ -218,12 +233,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                                     Theme.of(context).colorScheme.background),
                             child: Row(
                               children: [
-                                const Icon(Icons.qr_code_rounded),
+                                const Icon(Icons.history_rounded),
                                 const SizedBox(
                                   width: 5,
                                 ),
                                 Text(
-                                  "Create",
+                                  "History",
                                   style: centerFloatingHeading(),
                                 ),
                               ],
@@ -238,93 +253,5 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
         );
       },
     );
-  }
-
-  Future<void> showOptions() async {
-    await showModalBottomSheet(
-      context: context,
-      showDragHandle: true,
-      useSafeArea: true,
-      builder: (context) => Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(
-                Icons.qr_code_rounded,
-                size: 26,
-              ),
-              title: Text(
-                "Create",
-                style: defaultTextStyle(),
-              ),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15)),
-              dense: true,
-              onTap: () {},
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.star_border_rounded,
-                size: 26,
-              ),
-              title: Text(
-                "Favorites",
-                style: defaultTextStyle(),
-              ),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15)),
-              dense: true,
-              onTap: () {},
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.history_rounded,
-                size: 26,
-              ),
-              title: Text(
-                "History",
-                style: defaultTextStyle(),
-              ),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15)),
-              dense: true,
-              onTap: () {},
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.color_lens_outlined,
-                size: 26,
-              ),
-              title: Text(
-                "Apperance",
-                style: defaultTextStyle(),
-              ),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15)),
-              dense: true,
-              onTap: () {},
-            ),
-            ListTile(
-              leading: const Icon(
-                Icons.settings_outlined,
-                size: 26,
-              ),
-              title: Text(
-                "Settings",
-                style: defaultTextStyle(),
-              ),
-              shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(15)),
-              dense: true,
-              onTap: () {},
-            ),
-          ],
-        ),
-      ),
-    );
-
-    return;
   }
 }

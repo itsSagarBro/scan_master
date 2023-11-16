@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/adapters.dart';
 import 'package:scan_master/utils/themes/dark_theme.dart';
 import 'package:scan_master/utils/themes/light_theme.dart';
 import 'package:scan_master/utils/router.dart';
 
-void main() {
+void main() async {
+  await Hive.initFlutter();
+  await Hive.openBox("history");
   runApp(const MyApp());
 }
 
@@ -19,6 +22,7 @@ class MyApp extends StatelessWidget {
       darkTheme: darkTheme,
       theme: lightTheme,
       routerConfig: router,
+      debugShowCheckedModeBanner: false,
     );
   }
 }

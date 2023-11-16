@@ -33,13 +33,14 @@ dependencies:
   auto_size_text: ^3.0.0
   mobile_scanner: 
     git: https://github.com/itsSagarBro/mobile_scanner
-  flutter_contacts: ^1.1.7+1
   share_plus: ^7.2.1
   wifi_iot: ^0.3.18+1
   screenshot: ^2.1.0
   image_gallery_saver: '^2.0.3'
   fluttertoast: ^8.2.4
   barcode_widget: ^2.0.4
+  hive_flutter: ^1.1.0
+  flutter_slidable: ^3.0.1
 
 dev_dependencies:
   flutter_test:

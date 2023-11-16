@@ -1,5 +1,7 @@
 import 'package:bloc/bloc.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:scan_master/models/history_model.dart';
 
 part 'qr_scanner_event.dart';
 part 'qr_scanner_state.dart';
@@ -15,19 +17,31 @@ class QrScannerBloc extends Bloc<QrScannerEvent, QrScannerState> {
     on<OnScannedData>((event, emit) {
       if (!scanned) {
         scanned = true;
-        state.mobileScannerController?.stop();
-        emit(state.copyWith(flashOn: flashOn, data: event.data));
+        Box history = Hive.box("history");
+        String id = DateTime.now().millisecondsSinceEpoch.toString();
+        ScannedModel scannedModel = ScannedModel(
+            id: id,
+            name: event.data.barcodes[0].displayValue,
+            datetime: DateTime.now().toString(),
+            favorite: false,
+            raw: event.data.raw);
+        history.put(id, scannedModel.toJson());
+        emit(state.copyWith(flashOn: flashOn, data: scannedModel));
       }
     });
 
     on<OnReturn>((event, emit) async {
-      if (event.startCamera ?? true) {
-        await state.mobileScannerController?.start();
-      }
-
       flashOn = false;
       scanned = false;
       emit(state.copyWith(flashOn: flashOn, data: null));
+    });
+
+    on<PauseCamera>((event, emit) {
+      scanned = true;
+    });
+
+    on<StartCamera>((event, emit) {
+      scanned = false;
     });
   }
 
@@ -36,7 +50,7 @@ class QrScannerBloc extends Bloc<QrScannerEvent, QrScannerState> {
 
   @override
   Future<void> close() {
-    state.mobileScannerController?.dispose();
+    state.dispose();
     return super.close();
   }
 }

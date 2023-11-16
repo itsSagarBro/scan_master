@@ -1,61 +1,62 @@
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:barcode_widget/barcode_widget.dart' as barcodeWidget;
+import 'package:barcode_widget/barcode_widget.dart' as barcode_widget;
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:scan_master/bloc/scanned_result_bloc/scanned_result_bloc.dart';
+import 'package:scan_master/models/history_model.dart';
 import 'package:scan_master/utils/get_button_text.dart';
 import 'package:scan_master/utils/get_scanned_values.dart';
 import 'package:scan_master/utils/text_styles.dart';
 import 'package:screenshot/screenshot.dart';
 
 class ScannedScreen extends StatelessWidget {
-  const ScannedScreen({super.key, required this.data});
+  const ScannedScreen({super.key, required this.scannedModel});
 
-  final BarcodeCapture data;
+  final ScannedModel scannedModel;
 
-  barcodeWidget.Barcode getQrType(BarcodeFormat format) {
-    barcodeWidget.Barcode barcode = barcodeWidget.Barcode.qrCode();
+  barcode_widget.Barcode getQrType(BarcodeFormat format) {
+    barcode_widget.Barcode barcode = barcode_widget.Barcode.qrCode();
 
     switch (format) {
       case BarcodeFormat.aztec:
-        barcode = barcodeWidget.Barcode.aztec();
+        barcode = barcode_widget.Barcode.aztec();
         break;
       case BarcodeFormat.codabar:
-        barcode = barcodeWidget.Barcode.codabar();
+        barcode = barcode_widget.Barcode.codabar();
         break;
       case BarcodeFormat.code128:
-        barcode = barcodeWidget.Barcode.code128();
+        barcode = barcode_widget.Barcode.code128();
         break;
       case BarcodeFormat.code39:
-        barcode = barcodeWidget.Barcode.code39();
+        barcode = barcode_widget.Barcode.code39();
         break;
       case BarcodeFormat.code93:
-        barcode = barcodeWidget.Barcode.code93();
+        barcode = barcode_widget.Barcode.code93();
         break;
       case BarcodeFormat.dataMatrix:
-        barcode = barcodeWidget.Barcode.dataMatrix();
+        barcode = barcode_widget.Barcode.dataMatrix();
         break;
       case BarcodeFormat.ean13:
-        barcode = barcodeWidget.Barcode.ean13();
+        barcode = barcode_widget.Barcode.ean13();
         break;
       case BarcodeFormat.ean8:
-        barcode = barcodeWidget.Barcode.ean8();
+        barcode = barcode_widget.Barcode.ean8();
         break;
       case BarcodeFormat.itf:
-        barcode = barcodeWidget.Barcode.itf();
+        barcode = barcode_widget.Barcode.itf();
         break;
       case BarcodeFormat.pdf417:
-        barcode = barcodeWidget.Barcode.pdf417();
+        barcode = barcode_widget.Barcode.pdf417();
         break;
       case BarcodeFormat.upcA:
-        barcode = barcodeWidget.Barcode.upcA();
+        barcode = barcode_widget.Barcode.upcA();
         break;
       case BarcodeFormat.upcE:
-        barcode = barcodeWidget.Barcode.upcE();
+        barcode = barcode_widget.Barcode.upcE();
         break;
       default:
-        barcode = barcodeWidget.Barcode.qrCode();
+        barcode = barcode_widget.Barcode.qrCode();
         break;
     }
 
@@ -64,15 +65,21 @@ class ScannedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Barcode barcode = data.barcodes[0];
+    Barcode barcode = (scannedModel.raw as List)
+        .map((e) => Barcode.fromNative(e))
+        .toList()
+        .first;
     String displayText = getDisplayValue(barcode);
 
     return Scaffold(
       appBar: AppBar(
-          title: Text(
-        "Scanned Result",
-        style: appBarHeading(),
-      )),
+        centerTitle: true,
+        title: Text(
+          "Scanned Result",
+          style: appBarHeading(),
+        ),
+        titleSpacing: 5,
+      ),
       body: SafeArea(
           child: Padding(
         padding: const EdgeInsets.all(20),
@@ -90,7 +97,7 @@ class ScannedScreen extends StatelessWidget {
                   return Center(
                     child: Screenshot(
                       controller: state.screenshotController!,
-                      child: barcodeWidget.BarcodeWidget(
+                      child: barcode_widget.BarcodeWidget(
                         backgroundColor: Colors.white,
                         padding: const EdgeInsets.all(10),
                         data: barcode.rawValue.toString(),
