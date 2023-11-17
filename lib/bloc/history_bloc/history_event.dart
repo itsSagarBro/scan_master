@@ -2,8 +2,18 @@ part of 'history_bloc.dart';
 
 abstract class HistoryEvent {}
 
-final class DeleteHistory extends HistoryEvent {
-  int index;
+final class OnDeleteHistoryClicked extends HistoryEvent {
+  String id;
 
-  DeleteHistory(this.index);
+  OnDeleteHistoryClicked(this.id);
 }
+
+final class OnDeleteAllHistoryClicked extends HistoryEvent {}
+
+final class OnFavoriteToggleClicked extends HistoryEvent {
+  String id;
+
+  OnFavoriteToggleClicked(this.id);
+}
+
+final class OnUnfavoriteAllClicked extends HistoryEvent {}

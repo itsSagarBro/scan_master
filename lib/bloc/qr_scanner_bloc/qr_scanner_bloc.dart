@@ -8,6 +8,8 @@ part 'qr_scanner_state.dart';
 
 class QrScannerBloc extends Bloc<QrScannerEvent, QrScannerState> {
   QrScannerBloc() : super(QrScannerState.initial()) {
+    Box history = Hive.box("history");
+
     on<OnFlashClick>((event, emit) async {
       flashOn = !flashOn;
       await state.mobileScannerController?.toggleTorch();
@@ -17,7 +19,6 @@ class QrScannerBloc extends Bloc<QrScannerEvent, QrScannerState> {
     on<OnScannedData>((event, emit) {
       if (!scanned) {
         scanned = true;
-        Box history = Hive.box("history");
         String id = DateTime.now().millisecondsSinceEpoch.toString();
         ScannedModel scannedModel = ScannedModel(
             id: id,

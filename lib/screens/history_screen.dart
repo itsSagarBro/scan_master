@@ -22,7 +22,24 @@ class HistoryScreen extends StatelessWidget {
           "History",
           style: appBarHeading(),
         ),
-        titleSpacing: 5,
+        actions: [
+          PopupMenuButton(
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                child: Text(
+                  "Clear All",
+                  style: defaultTextStyle(fontSize: 14),
+                ),
+                onTap: () => BlocProvider.of<HistoryBloc>(context)
+                    .add(OnDeleteAllHistoryClicked()),
+              ),
+            ],
+            position: PopupMenuPosition.under,
+            enableFeedback: true,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          )
+        ],
       ),
       body: BlocBuilder<HistoryBloc, HistoryState>(
         builder: (context, state) {
@@ -38,21 +55,35 @@ class HistoryScreen extends StatelessWidget {
                   .first;
 
               return Padding(
-                padding: const EdgeInsets.symmetric(vertical: 5),
+                padding: const EdgeInsets.symmetric(vertical: 2.5),
                 child: Slidable(
-                  endActionPane:
-                      ActionPane(motion: const ScrollMotion(), children: [
-                    SlidableAction(
-                      onPressed: (context) =>
-                          BlocProvider.of<HistoryBloc>(context)
-                              .add(DeleteHistory(index)),
-                      backgroundColor: Colors.redAccent,
-                      foregroundColor: Colors.white,
-                      icon: Icons.delete,
-                      label: 'Delete',
-                      borderRadius: BorderRadius.circular(20),
-                    )
-                  ]),
+                  endActionPane: ActionPane(
+                      motion: const DrawerMotion(),
+                      extentRatio: .7,
+                      children: [
+                        SlidableAction(
+                          onPressed: (context) =>
+                              BlocProvider.of<HistoryBloc>(context).add(
+                                  OnFavoriteToggleClicked(scannedModel.id!)),
+                          backgroundColor: Colors.amber,
+                          foregroundColor: Colors.white,
+                          icon: scannedModel.favorite!
+                              ? Icons.star_rounded
+                              : Icons.star_border_rounded,
+                          label: 'Favorite',
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        SlidableAction(
+                          onPressed: (context) =>
+                              BlocProvider.of<HistoryBloc>(context).add(
+                                  OnDeleteHistoryClicked(scannedModel.id!)),
+                          backgroundColor: Colors.redAccent,
+                          foregroundColor: Colors.white,
+                          icon: Icons.delete,
+                          label: 'Delete',
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ]),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(20),
                     child: InkWell(
@@ -66,40 +97,33 @@ class HistoryScreen extends StatelessWidget {
                         color: Theme.of(context)
                             .colorScheme
                             .secondaryContainer
-                            .withOpacity(.5),
+                            .withOpacity(.4),
                         constraints:
                             const BoxConstraints(maxHeight: 140, minHeight: 80),
-                        child: Row(
-                          children: [
-                            Expanded(
-                                child: AutoSizeText.rich(
-                              TextSpan(
-                                  style: defaultTextStyle(
-                                      fontSize: 14,
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onBackground
-                                          .withOpacity(.5)),
-                                  children: [
-                                    TextSpan(
-                                        text:
-                                            "${barcode.type.name.toUpperCase()}\n",
-                                        style: defaultTextStyle(
-                                                fontSize: 18,
-                                                color: Theme.of(context)
-                                                    .colorScheme
-                                                    .onBackground)
-                                            .copyWith(
-                                                fontWeight: FontWeight.w600)),
-                                    TextSpan(
-                                        text:
-                                            "${formattedTime(DateTime.parse(scannedModel.datetime!))}, ${barcode.format.name.toUpperCase()}"),
-                                    TextSpan(
-                                        text: "\n${getDisplayValue(barcode)}")
-                                  ]),
-                              minFontSize: 12,
-                            ))
-                          ],
+                        child: AutoSizeText.rich(
+                          TextSpan(
+                              style: defaultTextStyle(
+                                  fontSize: 13,
+                                  color: Theme.of(context)
+                                      .colorScheme
+                                      .onBackground
+                                      .withOpacity(.5)),
+                              children: [
+                                TextSpan(
+                                    text:
+                                        "${barcode.type.name.toUpperCase()}\n",
+                                    style: defaultTextStyle(
+                                            fontSize: 16,
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onBackground)
+                                        .copyWith(fontWeight: FontWeight.w600)),
+                                TextSpan(
+                                    text:
+                                        "${formattedTime(DateTime.parse(scannedModel.datetime!))}, ${barcode.format.name.toUpperCase()}"),
+                                TextSpan(text: "\n${getDisplayValue(barcode)}")
+                              ]),
+                          minFontSize: 12,
                         ),
                       ),
                     ),

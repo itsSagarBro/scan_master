@@ -6,6 +6,9 @@ class HistoryState {
   Box box = Hive.box("history");
   final List<dynamic> datas;
 
+  List<dynamic> get favoriteData =>
+      datas.where((element) => element["favorite"] == true).toList();
+
   factory HistoryState.initial() {
     Box box = Hive.box("history");
     return HistoryState._(datas: box.values.toList().reversed.toList());

@@ -8,6 +8,7 @@ import 'package:scan_master/bloc/qr_scanner_bloc/qr_scanner_bloc.dart';
 import 'package:scan_master/bloc/scanned_result_bloc/scanned_result_bloc.dart';
 import 'package:scan_master/models/history_model.dart';
 import 'package:scan_master/screens/create_screen.dart';
+import 'package:scan_master/screens/favorites_screen.dart';
 import 'package:scan_master/screens/history_screen.dart';
 import 'package:scan_master/screens/home_screen.dart';
 import 'package:scan_master/screens/scanned_screen.dart';
@@ -26,8 +27,8 @@ GoRouter router = GoRouter(routes: [
           path: "scanned",
           pageBuilder: (context, state) => CupertinoPage(
               child: BlocProvider(
-            create: (context) => ScannedResultBloc(),
-            child: ScannedScreen(scannedModel: state.extra as ScannedModel),
+            create: (context) => ScannedResultBloc(state.extra as ScannedModel),
+            child: const ScannedScreen(),
           )),
         ),
         GoRoute(
@@ -50,9 +51,27 @@ GoRouter router = GoRouter(routes: [
                 path: "scanned",
                 pageBuilder: (context, state) => MaterialPage(
                     child: BlocProvider(
-                  create: (context) => ScannedResultBloc(),
-                  child:
-                      ScannedScreen(scannedModel: state.extra as ScannedModel),
+                  create: (context) =>
+                      ScannedResultBloc(state.extra as ScannedModel),
+                  child: const ScannedScreen(),
+                )),
+              )
+            ]),
+        GoRoute(
+            path: "favorites",
+            pageBuilder: (context, state) => MaterialPage(
+                    child: BlocProvider(
+                  create: (context) => HistoryBloc(),
+                  child: const FavoritesScreen(),
+                )),
+            routes: [
+              GoRoute(
+                path: "scanned",
+                pageBuilder: (context, state) => MaterialPage(
+                    child: BlocProvider(
+                  create: (context) =>
+                      ScannedResultBloc(state.extra as ScannedModel),
+                  child: const ScannedScreen(),
                 )),
               )
             ])

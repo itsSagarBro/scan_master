@@ -142,7 +142,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15)),
                     dense: true,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pop(context);
+                      loadScreen("/favorites");
+                    },
                   ),
                   ListTile(
                     leading: const Icon(

@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       title: 'Scan Master',
-      themeMode: ThemeMode.light,
+      themeMode: ThemeMode.dark,
       darkTheme: darkTheme,
       theme: lightTheme,
       routerConfig: router,
