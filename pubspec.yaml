@@ -41,6 +41,7 @@ dependencies:
   barcode_widget: ^2.0.4
   hive_flutter: ^1.1.0
   flutter_slidable: ^3.0.1
+  logger: ^2.0.2+1
 
 dev_dependencies:
   flutter_test:

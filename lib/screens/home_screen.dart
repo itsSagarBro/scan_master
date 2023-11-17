@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:scan_master/bloc/history_bloc/history_bloc.dart';
 import 'package:scan_master/bloc/qr_scanner_bloc/qr_scanner_bloc.dart';
+import 'package:scan_master/bloc/settings_bloc/settings_bloc.dart';
 import 'package:scan_master/utils/qr_scanner_overlay.dart';
 import 'package:scan_master/utils/text_styles.dart';
 
@@ -26,7 +28,8 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   void didChangeAppLifecycleState(AppLifecycleState state) {
     switch (state) {
       case AppLifecycleState.resumed:
-        BlocProvider.of<QrScannerBloc>(context).add(OnReturn());
+        BlocProvider.of<QrScannerBloc>(context)
+            .add(OnReturn(fromBackground: true));
         break;
       default:
         break;
@@ -176,7 +179,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15)),
                     dense: true,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pop(context);
+                      loadScreen("/settings");
+                    },
                   ),
                   ListTile(
                     leading: const Icon(
@@ -206,6 +212,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   onDetect: (barcodes) {
                     BlocProvider.of<QrScannerBloc>(context)
                         .add(OnScannedData(barcodes));
+                    if (BlocProvider.of<SettingsBloc>(context).saveHistory) {
+                      BlocProvider.of<HistoryBloc>(context)
+                          .add(OnAddHistoryClicked(barcodes));
+                    }
                   },
                   controller: state.mobileScannerController ??
                       MobileScannerController(),

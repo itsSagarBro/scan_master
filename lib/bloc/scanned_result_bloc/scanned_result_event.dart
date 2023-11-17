@@ -28,8 +28,4 @@ class OnShareClick extends ScannedResultEvent {
   OnShareClick(this.value);
 }
 
-class OnFavortieToggleClick extends ScannedResultEvent {
-  String id;
-
-  OnFavortieToggleClick(this.id);
-}
+class OnFavortieToggleClick extends ScannedResultEvent {}

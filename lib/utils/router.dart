@@ -2,16 +2,14 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:scan_master/bloc/create_bloc/create_bloc.dart';
-import 'package:scan_master/bloc/history_bloc/history_bloc.dart';
 import 'package:scan_master/bloc/qr_scanner_bloc/qr_scanner_bloc.dart';
 import 'package:scan_master/bloc/scanned_result_bloc/scanned_result_bloc.dart';
 import 'package:scan_master/models/history_model.dart';
-import 'package:scan_master/screens/create_screen.dart';
 import 'package:scan_master/screens/favorites_screen.dart';
 import 'package:scan_master/screens/history_screen.dart';
 import 'package:scan_master/screens/home_screen.dart';
 import 'package:scan_master/screens/scanned_screen.dart';
+import 'package:scan_master/screens/settings_screen.dart';
 
 GoRouter router = GoRouter(routes: [
   GoRoute(
@@ -32,20 +30,14 @@ GoRouter router = GoRouter(routes: [
           )),
         ),
         GoRoute(
-          path: "create",
-          pageBuilder: (context, state) => MaterialPage(
-              child: BlocProvider(
-            create: (context) => CreateBloc(),
-            child: const CreateScreen(),
-          )),
+          path: "settings",
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: SettingsScreen()),
         ),
         GoRoute(
             path: "history",
-            pageBuilder: (context, state) => MaterialPage(
-                    child: BlocProvider(
-                  create: (context) => HistoryBloc(),
-                  child: const HistoryScreen(),
-                )),
+            pageBuilder: (context, state) =>
+                const MaterialPage(child: HistoryScreen()),
             routes: [
               GoRoute(
                 path: "scanned",
@@ -59,11 +51,8 @@ GoRouter router = GoRouter(routes: [
             ]),
         GoRoute(
             path: "favorites",
-            pageBuilder: (context, state) => MaterialPage(
-                    child: BlocProvider(
-                  create: (context) => HistoryBloc(),
-                  child: const FavoritesScreen(),
-                )),
+            pageBuilder: (context, state) =>
+                const MaterialPage(child: FavoritesScreen()),
             routes: [
               GoRoute(
                 path: "scanned",

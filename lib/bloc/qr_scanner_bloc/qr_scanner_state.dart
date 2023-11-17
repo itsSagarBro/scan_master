@@ -12,7 +12,7 @@ class QrScannerState {
 
   factory QrScannerState.initial() {
     MobileScannerController controller =
-        MobileScannerController(detectionSpeed: DetectionSpeed.noDuplicates);
+        MobileScannerController(detectionSpeed: DetectionSpeed.normal);
     return QrScannerState._(
         mobileScannerController: controller, flashOn: false, data: null);
   }

@@ -10,7 +10,11 @@ final class OnScannedData extends QrScannerEvent {
   OnScannedData(this.data);
 }
 
-final class OnReturn extends QrScannerEvent {}
+final class OnReturn extends QrScannerEvent {
+  bool fromBackground;
+
+  OnReturn({this.fromBackground = false});
+}
 
 final class PauseCamera extends QrScannerEvent {}
 

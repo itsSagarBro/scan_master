@@ -1,7 +1,6 @@
 import 'package:bloc/bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:image_gallery_saver/image_gallery_saver.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:scan_master/models/history_model.dart';
@@ -17,8 +16,6 @@ part 'scanned_result_state.dart';
 class ScannedResultBloc extends Bloc<ScannedResultEvent, ScannedResultState> {
   ScannedResultBloc(ScannedModel scannedModel)
       : super(ScannedResultState.initial(scannedModel)) {
-    Box box = Hive.box("history");
-
     on<OnActionClick>((event, emit) async {
       switch (event.barcode.type) {
         case BarcodeType.wifi:
@@ -63,12 +60,5 @@ class ScannedResultBloc extends Bloc<ScannedResultEvent, ScannedResultState> {
 
     on<OnCopyClick>(
         (event, emit) => Clipboard.setData(ClipboardData(text: event.value)));
-
-    on<OnFavortieToggleClick>((event, emit) async {
-      ScannedModel scannedModel = ScannedModel.fromJson(box.get(event.id));
-      scannedModel.favorite = !scannedModel.favorite!;
-      box.put(event.id, scannedModel.toJson());
-      emit(state.copyWith(scannedModel: scannedModel));
-    });
   }
 }

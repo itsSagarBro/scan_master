@@ -17,4 +17,8 @@ class HistoryState {
   HistoryState copyWith(List<dynamic>? datas) {
     return HistoryState._(datas: datas?.reversed.toList() ?? this.datas);
   }
+
+  dynamic getOneData(String id) {
+    return datas.firstWhere((element) => element["id"] == id);
+  }
 }
