@@ -89,7 +89,7 @@ class HistoryScreen extends StatelessWidget {
                     child: InkWell(
                       borderRadius: BorderRadius.circular(20),
                       onTap: () =>
-                          context.go("/history/scanned", extra: scannedModel),
+                          context.push("/history/scanned", extra: scannedModel),
                       child: Container(
                         width: double.maxFinite,
                         padding: const EdgeInsets.symmetric(

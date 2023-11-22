@@ -96,7 +96,7 @@ class SettingsScreen extends StatelessWidget {
                       ),
                       const Spacer(),
                       DropdownButton(
-                        value: 0,
+                        value: state.deleteHistory,
                         underline: const SizedBox(),
                         borderRadius: BorderRadius.circular(15),
                         alignment: AlignmentDirectional.centerEnd,
@@ -104,23 +104,25 @@ class SettingsScreen extends StatelessWidget {
                           DropdownMenuItem(
                               value: 0,
                               child: Text(
-                                "30 Days",
+                                "Never",
                                 style: defaultTextStyle(),
                               )),
                           DropdownMenuItem(
-                              value: 1,
+                              value: 7,
                               child: Text(
                                 "7 Days",
                                 style: defaultTextStyle(),
                               )),
                           DropdownMenuItem(
-                              value: 2,
+                              value: 30,
                               child: Text(
-                                "Never",
+                                "30 Days",
                                 style: defaultTextStyle(),
                               ))
                         ],
-                        onChanged: (value) {},
+                        onChanged: (value) =>
+                            BlocProvider.of<SettingsBloc>(context)
+                                .add(OnHistoryDeleteTimeChanged(value ?? 0)),
                       )
                     ],
                   ),
@@ -137,8 +139,10 @@ class SettingsScreen extends StatelessWidget {
                       ),
                       const Spacer(),
                       Switch.adaptive(
-                        value: false,
-                        onChanged: (value) {},
+                        value: state.autoCopy,
+                        onChanged: (value) =>
+                            BlocProvider.of<SettingsBloc>(context)
+                                .add(ToggleAutoCopy(value)),
                       )
                     ],
                   ),
@@ -154,8 +158,10 @@ class SettingsScreen extends StatelessWidget {
                       ),
                       const Spacer(),
                       Switch.adaptive(
-                        value: false,
-                        onChanged: (value) {},
+                        value: state.autoOpenUrl,
+                        onChanged: (value) =>
+                            BlocProvider.of<SettingsBloc>(context)
+                                .add(ToggleAutoOpenUrl(value)),
                       )
                     ],
                   ),
@@ -171,8 +177,10 @@ class SettingsScreen extends StatelessWidget {
                       ),
                       const Spacer(),
                       Switch.adaptive(
-                        value: false,
-                        onChanged: (value) {},
+                        value: state.qrAutoDownload,
+                        onChanged: (value) =>
+                            BlocProvider.of<SettingsBloc>(context)
+                                .add(ToggleAutoDownloadQr(value)),
                       )
                     ],
                   ),
@@ -188,8 +196,10 @@ class SettingsScreen extends StatelessWidget {
                       ),
                       const Spacer(),
                       Switch.adaptive(
-                        value: false,
-                        onChanged: (value) {},
+                        value: state.qrImageShare,
+                        onChanged: (value) =>
+                            BlocProvider.of<SettingsBloc>(context)
+                                .add(ToggleQrImageShare(value)),
                       )
                     ],
                   ),

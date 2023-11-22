@@ -47,15 +47,20 @@ class ScannedResultBloc extends Bloc<ScannedResultEvent, ScannedResultState> {
     });
 
     on<OnShareClick>((event, emit) async {
-      await state.screenshotController?.capture().then((image) async {
-        if (image != null) {
-          await Share.shareXFiles([
-            XFile.fromData(image,
-                mimeType: "jpg",
-                name: "${event.value} ${DateTime.now().millisecondsSinceEpoch}")
-          ], subject: event.value, text: event.value);
-        }
-      });
+      if (event.shareImage) {
+        await state.screenshotController?.capture().then((image) async {
+          if (image != null) {
+            await Share.shareXFiles([
+              XFile.fromData(image,
+                  mimeType: "jpg",
+                  name:
+                      "${event.value} ${DateTime.now().millisecondsSinceEpoch}")
+            ], subject: event.value, text: event.value);
+          }
+        });
+      } else {
+        await Share.share(event.value);
+      }
     });
 
     on<OnCopyClick>(

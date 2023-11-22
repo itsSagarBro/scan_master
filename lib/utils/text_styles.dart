@@ -15,8 +15,10 @@ TextStyle qrOpenButtonTextStyle() {
   return _defaultFontStyle.copyWith(fontSize: 20);
 }
 
-TextStyle defaultTextStyle({double? fontSize, Color? color}) {
-  return _defaultFontStyle.copyWith(fontSize: fontSize ?? 16, color: color);
+TextStyle defaultTextStyle(
+    {double? fontSize, Color? color, FontWeight? fontWeight}) {
+  return _defaultFontStyle.copyWith(
+      fontSize: fontSize ?? 16, color: color, fontWeight: fontWeight);
 }
 
 TextStyle drawerTextStyle({Color? color}) {

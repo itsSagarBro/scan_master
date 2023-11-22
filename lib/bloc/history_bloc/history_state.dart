@@ -11,6 +11,17 @@ class HistoryState {
 
   factory HistoryState.initial() {
     Box box = Hive.box("history");
+    int deleteDays = Hive.box("settings").get("deleteHistory", defaultValue: 0);
+    if (deleteDays != 0) {
+      for (var element in box.values) {
+        DateTime createdDate = DateTime.parse(element["datetime"]);
+        int daysFromCreated = DateTime.now().difference(createdDate).inDays;
+        log(daysFromCreated.toString());
+        if (daysFromCreated > deleteDays) {
+          box.delete(element["id"]);
+        }
+      }
+    }
     return HistoryState._(datas: box.values.toList().reversed.toList());
   }
 
@@ -19,6 +30,11 @@ class HistoryState {
   }
 
   dynamic getOneData(String id) {
-    return datas.firstWhere((element) => element["id"] == id);
+    List list = datas.where((element) => element["id"] == id).toList();
+    return list.isNotEmpty ? list.first : null;
+  }
+
+  dynamic getRecentData() {
+    return datas.last;
   }
 }

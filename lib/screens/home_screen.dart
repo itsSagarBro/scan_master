@@ -196,7 +196,10 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(15)),
                     dense: true,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pop(context);
+                      loadScreen("/about");
+                    },
                   ),
                 ],
               ),
@@ -210,12 +213,12 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                   key: qrKey,
                   autoLifecycle: false,
                   onDetect: (barcodes) {
-                    BlocProvider.of<QrScannerBloc>(context)
-                        .add(OnScannedData(barcodes));
                     if (BlocProvider.of<SettingsBloc>(context).saveHistory) {
                       BlocProvider.of<HistoryBloc>(context)
                           .add(OnAddHistoryClicked(barcodes));
                     }
+                    BlocProvider.of<QrScannerBloc>(context)
+                        .add(OnScannedData(barcodes));
                   },
                   controller: state.mobileScannerController ??
                       MobileScannerController(),

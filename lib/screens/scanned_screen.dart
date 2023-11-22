@@ -5,7 +5,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:scan_master/bloc/history_bloc/history_bloc.dart';
 import 'package:scan_master/bloc/scanned_result_bloc/scanned_result_bloc.dart';
+import 'package:scan_master/bloc/settings_bloc/settings_bloc.dart';
+import 'package:scan_master/models/history_model.dart';
 import 'package:scan_master/utils/get_button_text.dart';
+import 'package:scan_master/utils/get_qr_type.dart';
 import 'package:scan_master/utils/get_scanned_values.dart';
 import 'package:scan_master/utils/text_styles.dart';
 import 'package:screenshot/screenshot.dart';
@@ -13,63 +16,39 @@ import 'package:screenshot/screenshot.dart';
 class ScannedScreen extends StatelessWidget {
   const ScannedScreen({super.key});
 
-  barcode_widget.Barcode getQrType(BarcodeFormat format) {
-    barcode_widget.Barcode barcode = barcode_widget.Barcode.qrCode();
-
-    switch (format) {
-      case BarcodeFormat.aztec:
-        barcode = barcode_widget.Barcode.aztec();
-        break;
-      case BarcodeFormat.codabar:
-        barcode = barcode_widget.Barcode.codabar();
-        break;
-      case BarcodeFormat.code128:
-        barcode = barcode_widget.Barcode.code128();
-        break;
-      case BarcodeFormat.code39:
-        barcode = barcode_widget.Barcode.code39();
-        break;
-      case BarcodeFormat.code93:
-        barcode = barcode_widget.Barcode.code93();
-        break;
-      case BarcodeFormat.dataMatrix:
-        barcode = barcode_widget.Barcode.dataMatrix();
-        break;
-      case BarcodeFormat.ean13:
-        barcode = barcode_widget.Barcode.ean13();
-        break;
-      case BarcodeFormat.ean8:
-        barcode = barcode_widget.Barcode.ean8();
-        break;
-      case BarcodeFormat.itf:
-        barcode = barcode_widget.Barcode.itf();
-        break;
-      case BarcodeFormat.pdf417:
-        barcode = barcode_widget.Barcode.pdf417();
-        break;
-      case BarcodeFormat.upcA:
-        barcode = barcode_widget.Barcode.upcA();
-        break;
-      case BarcodeFormat.upcE:
-        barcode = barcode_widget.Barcode.upcE();
-        break;
-      default:
-        barcode = barcode_widget.Barcode.qrCode();
-        break;
-    }
-
-    return barcode;
-  }
-
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<ScannedResultBloc, ScannedResultState>(
       builder: (context, state) {
+        // This convers raw data into barcode for future use
         Barcode barcode = (state.scannedModel.raw as List)
             .map((e) => Barcode.fromNative(e))
             .toList()
             .first;
+
+        // This converts raw data into readable format
         String displayText = getDisplayValue(barcode);
+
+        // This function will take action for all auto options and resctrict
+        //this options from calling when coming from other state
+        if (BlocProvider.of<HistoryBloc>(context)
+                .state
+                .getOneData(state.scannedModel.id!) ==
+            null) {
+          if (BlocProvider.of<SettingsBloc>(context).autoCopy) {
+            BlocProvider.of<ScannedResultBloc>(context)
+                .add(OnCopyClick(displayText));
+          } else if (BlocProvider.of<SettingsBloc>(context).autoOpenUrl &&
+              barcode.type == BarcodeType.url) {
+            BlocProvider.of<ScannedResultBloc>(context)
+                .add(OnActionClick(barcode));
+          }
+
+          if (BlocProvider.of<SettingsBloc>(context).qrAutoDownload) {
+            BlocProvider.of<ScannedResultBloc>(context)
+                .add(DownloadQrCodeImage());
+          }
+        }
 
         return Scaffold(
             appBar: AppBar(
@@ -79,27 +58,33 @@ class ScannedScreen extends StatelessWidget {
                 style: appBarHeading(),
               ),
               actions: [
-                PopupMenuButton(
-                  itemBuilder: (context) => [
-                    PopupMenuItem(
-                        onTap: () => BlocProvider.of<HistoryBloc>(context).add(
-                            OnFavoriteToggleClicked(state.scannedModel.id!)),
-                        child: Text(
-                          state.scannedModel.favorite!
-                              ? "Mark as Unfavorite"
-                              : "Mark as Favorite",
+                BlocBuilder<HistoryBloc, HistoryState>(
+                  builder: (context, historyState) {
+                    var data = historyState.getRecentData();
+                    ScannedModel scannedModel = ScannedModel.fromJson(data);
+                    return PopupMenuButton(
+                      itemBuilder: (context) => [
+                        PopupMenuItem(
+                            onTap: () => BlocProvider.of<HistoryBloc>(context)
+                                .add(OnFavoriteToggleClicked(scannedModel.id!)),
+                            child: Text(
+                              scannedModel.favorite!
+                                  ? "Mark as Unfavorite"
+                                  : "Mark as Favorite",
+                              style: defaultTextStyle(fontSize: 14),
+                            )),
+                        PopupMenuItem(
+                            child: Text(
+                          "Settings",
                           style: defaultTextStyle(fontSize: 14),
-                        )),
-                    PopupMenuItem(
-                        child: Text(
-                      "Settings",
-                      style: defaultTextStyle(fontSize: 14),
-                    ))
-                  ],
-                  position: PopupMenuPosition.under,
-                  enableFeedback: true,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15)),
+                        ))
+                      ],
+                      position: PopupMenuPosition.under,
+                      enableFeedback: true,
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(15)),
+                    );
+                  },
                 )
               ],
             ),
@@ -227,8 +212,12 @@ class ScannedScreen extends StatelessWidget {
                         ),
                         IconButton.filledTonal(
                           onPressed: () =>
-                              BlocProvider.of<ScannedResultBloc>(context)
-                                  .add(OnShareClick(displayText)),
+                              BlocProvider.of<ScannedResultBloc>(context).add(
+                                  OnShareClick(
+                                      value: displayText,
+                                      shareImage:
+                                          BlocProvider.of<SettingsBloc>(context)
+                                              .shareQrImage)),
                           icon: const Icon(Icons.share_rounded),
                           iconSize: 28,
                           tooltip: "Share Text",

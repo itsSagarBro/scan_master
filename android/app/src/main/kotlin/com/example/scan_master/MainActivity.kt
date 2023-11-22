@@ -1,4 +1,4 @@
-package com.example.scan_master
+package com.untitledstudio.scanmaster
 
 import io.flutter.embedding.android.FlutterActivity
 

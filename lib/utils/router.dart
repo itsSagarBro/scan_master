@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:scan_master/bloc/qr_scanner_bloc/qr_scanner_bloc.dart';
 import 'package:scan_master/bloc/scanned_result_bloc/scanned_result_bloc.dart';
 import 'package:scan_master/models/history_model.dart';
+import 'package:scan_master/screens/about_screen.dart';
 import 'package:scan_master/screens/favorites_screen.dart';
 import 'package:scan_master/screens/history_screen.dart';
 import 'package:scan_master/screens/home_screen.dart';
@@ -33,6 +34,11 @@ GoRouter router = GoRouter(routes: [
           path: "settings",
           pageBuilder: (context, state) =>
               const MaterialPage(child: SettingsScreen()),
+        ),
+        GoRoute(
+          path: "about",
+          pageBuilder: (context, state) =>
+              const MaterialPage(child: AboutScreen()),
         ),
         GoRoute(
             path: "history",

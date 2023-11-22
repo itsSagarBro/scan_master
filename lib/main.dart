@@ -8,9 +8,11 @@ import 'package:scan_master/utils/themes/light_theme.dart';
 import 'package:scan_master/utils/router.dart';
 
 void main() async {
+  /// Setting up hive for database
   await Hive.initFlutter();
   await Hive.openBox("history");
   await Hive.openBox("settings");
+
   runApp(const MyApp());
 }
 

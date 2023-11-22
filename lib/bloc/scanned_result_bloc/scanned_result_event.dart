@@ -24,8 +24,9 @@ class OnDownloadClick extends ScannedResultEvent {
 
 class OnShareClick extends ScannedResultEvent {
   String value;
+  bool shareImage;
 
-  OnShareClick(this.value);
+  OnShareClick({required this.value, required this.shareImage});
 }
 
 class OnFavortieToggleClick extends ScannedResultEvent {}

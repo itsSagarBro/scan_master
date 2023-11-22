@@ -41,7 +41,7 @@ class SettingsState {
         autoCopy: settingsBox.get("autoCopy", defaultValue: false),
         autoOpenUrl: settingsBox.get("autoOpenUrl", defaultValue: false),
         qrAutoDownload: settingsBox.get("qrAutoDownload", defaultValue: false),
-        qrImageShare: settingsBox.get("qrImageShare", defaultValue: false));
+        qrImageShare: settingsBox.get("qrImageShare", defaultValue: true));
   }
 
   SettingsState copyWith(

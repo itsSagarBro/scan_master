@@ -2,7 +2,7 @@
     <!-- Permissions -->
     <uses-permission android:name="android.permission.CAMERA" />
     <application
-        android:label="scan_master"
+        android:label="Scan Master"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity
