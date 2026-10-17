@@ -1,40 +1,55 @@
 part of 'history_bloc.dart';
 
+/// represents the current state of stored scan records, including history retention checks
 class HistoryState {
-  HistoryState._({required this.datas});
+  const HistoryState._({required this.datas});
 
-  Box box = Hive.box("history");
+  /// list of stored scan records arranged in reverse chronological order
   final List<dynamic> datas;
 
+  /// returns only items marked as favorite
   List<dynamic> get favoriteData =>
-      datas.where((element) => element["favorite"] == true).toList();
+      datas.where((element) => element['favorite'] == true).toList();
 
+  /// initializes history state and applies automated data retention policies
   factory HistoryState.initial() {
-    Box box = Hive.box("history");
-    int deleteDays = Hive.box("settings").get("deleteHistory", defaultValue: 0);
+    final Box<dynamic> box = Hive.box('history');
+    final Box<dynamic> settingsBox = Hive.box('settings');
+    final int deleteDays =
+        settingsBox.get('deleteHistory', defaultValue: 0) as int;
+
+    // prune records older than the user configured retention limit
     if (deleteDays != 0) {
-      for (var element in box.values) {
-        DateTime createdDate = DateTime.parse(element["datetime"]);
-        int daysFromCreated = DateTime.now().difference(createdDate).inDays;
-        log(daysFromCreated.toString());
-        if (daysFromCreated > deleteDays) {
-          box.delete(element["id"]);
+      final now = DateTime.now();
+      for (final element in box.values) {
+        if (element is Map && element['datetime'] != null) {
+          final createdDate = DateTime.tryParse(element['datetime'].toString());
+          if (createdDate != null) {
+            final daysFromCreated = now.difference(createdDate).inDays;
+            if (daysFromCreated > deleteDays) {
+              box.delete(element['id']);
+            }
+          }
         }
       }
     }
+
     return HistoryState._(datas: box.values.toList().reversed.toList());
   }
 
+  /// returns a new [HistoryState] instance with updated scan data reversed
   HistoryState copyWith(List<dynamic>? datas) {
     return HistoryState._(datas: datas?.reversed.toList() ?? this.datas);
   }
 
+  /// finds a single scan entry by its unique identifier
   dynamic getOneData(String id) {
-    List list = datas.where((element) => element["id"] == id).toList();
+    final list = datas.where((element) => element['id'] == id).toList();
     return list.isNotEmpty ? list.first : null;
   }
 
+  /// returns the most recently scanned item, or null if history is empty
   dynamic getRecentData() {
-    return datas.last;
+    return datas.isNotEmpty ? datas.first : null;
   }
 }

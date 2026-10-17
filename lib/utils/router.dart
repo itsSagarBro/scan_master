@@ -12,63 +12,94 @@ import 'package:scan_master/screens/home_screen.dart';
 import 'package:scan_master/screens/scanned_screen.dart';
 import 'package:scan_master/screens/settings_screen.dart';
 
-GoRouter router = GoRouter(routes: [
-  GoRoute(
-      path: "/",
+/// application route definitions using GoRouter
+/// handles nested navigation, route transitions, and passing scan payloads
+final GoRouter router = GoRouter(
+  initialLocation: '/',
+  routes: [
+    GoRoute(
+      path: '/',
       pageBuilder: (context, state) => MaterialPage(
-            child: BlocProvider(
-              create: (context) => QrScannerBloc(),
-              child: const HomeScreen(),
-            ),
-          ),
+        child: BlocProvider(
+          create: (context) => QrScannerBloc(),
+          child: const HomeScreen(),
+        ),
+      ),
       routes: [
+        // detail route triggered directly from live scanner
         GoRoute(
-          path: "scanned",
-          pageBuilder: (context, state) => CupertinoPage(
+          path: 'scanned',
+          pageBuilder: (context, state) {
+            final scanData = state.extra as ScannedModel;
+            return CupertinoPage(
               child: BlocProvider(
-            create: (context) => ScannedResultBloc(state.extra as ScannedModel),
-            child: const ScannedScreen(),
-          )),
+                create: (context) => ScannedResultBloc(scanData),
+                child: const ScannedScreen(),
+              ),
+            );
+          },
         ),
+
+        // settings screen
         GoRoute(
-          path: "settings",
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: SettingsScreen()),
+          path: 'settings',
+          pageBuilder: (context, state) => const MaterialPage(
+            child: SettingsScreen(),
+          ),
         ),
+
+        // application and license information
         GoRoute(
-          path: "about",
-          pageBuilder: (context, state) =>
-              const MaterialPage(child: AboutScreen()),
+          path: 'about',
+          pageBuilder: (context, state) => const MaterialPage(
+            child: AboutScreen(),
+          ),
         ),
+
+        // scan history log and its detail route
         GoRoute(
-            path: "history",
-            pageBuilder: (context, state) =>
-                const MaterialPage(child: HistoryScreen()),
-            routes: [
-              GoRoute(
-                path: "scanned",
-                pageBuilder: (context, state) => MaterialPage(
-                    child: BlocProvider(
-                  create: (context) =>
-                      ScannedResultBloc(state.extra as ScannedModel),
-                  child: const ScannedScreen(),
-                )),
-              )
-            ]),
+          path: 'history',
+          pageBuilder: (context, state) => const MaterialPage(
+            child: HistoryScreen(),
+          ),
+          routes: [
+            GoRoute(
+              path: 'scanned',
+              pageBuilder: (context, state) {
+                final scanData = state.extra as ScannedModel;
+                return MaterialPage(
+                  child: BlocProvider(
+                    create: (context) => ScannedResultBloc(scanData),
+                    child: const ScannedScreen(),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+
+        // starred or bookmarked scans and its detail route
         GoRoute(
-            path: "favorites",
-            pageBuilder: (context, state) =>
-                const MaterialPage(child: FavoritesScreen()),
-            routes: [
-              GoRoute(
-                path: "scanned",
-                pageBuilder: (context, state) => MaterialPage(
-                    child: BlocProvider(
-                  create: (context) =>
-                      ScannedResultBloc(state.extra as ScannedModel),
-                  child: const ScannedScreen(),
-                )),
-              )
-            ])
-      ])
-]);
+          path: 'favorites',
+          pageBuilder: (context, state) => const MaterialPage(
+            child: FavoritesScreen(),
+          ),
+          routes: [
+            GoRoute(
+              path: 'scanned',
+              pageBuilder: (context, state) {
+                final scanData = state.extra as ScannedModel;
+                return MaterialPage(
+                  child: BlocProvider(
+                    create: (context) => ScannedResultBloc(scanData),
+                    child: const ScannedScreen(),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ],
+    ),
+  ],
+);

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 
-ThemeData lightTheme = ThemeData(
-  colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+/// application-wide light theme configuration based on material 3 guidelines.
+final ThemeData lightTheme = ThemeData(
+  colorScheme: ColorScheme.fromSeed(
+    seedColor: Colors.blue,
+    brightness: Brightness.light,
+  ),
   useMaterial3: true,
 );

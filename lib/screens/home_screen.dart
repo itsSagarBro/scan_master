@@ -8,6 +8,8 @@ import 'package:scan_master/bloc/settings_bloc/settings_bloc.dart';
 import 'package:scan_master/utils/qr_scanner_overlay.dart';
 import 'package:scan_master/utils/text_styles.dart';
 
+/// primary viewfinder screen that hosts the live camera feed,
+/// top app bar controls, navigation drawer, and scan detection logic.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -16,7 +18,7 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
-  GlobalKey qrKey = GlobalKey(debugLabel: "QR");
+  final GlobalKey _qrKey = GlobalKey(debugLabel: 'QR');
 
   @override
   void initState() {
@@ -26,13 +28,9 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    switch (state) {
-      case AppLifecycleState.resumed:
-        BlocProvider.of<QrScannerBloc>(context)
-            .add(OnReturn(fromBackground: true));
-        break;
-      default:
-        break;
+    // restart camera stream when resuming from background
+    if (state == AppLifecycleState.resumed) {
+      context.read<QrScannerBloc>().add(OnReturn(fromBackground: true));
     }
   }
 
@@ -42,21 +40,30 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  Future<void> loadScreen(String name) async {
-    BlocProvider.of<QrScannerBloc>(context).add(PauseCamera());
-    await context.push(name);
-    // ignore: use_build_context_synchronously
-    BlocProvider.of<QrScannerBloc>(context).add(StartCamera());
+  /// pauses the camera feed during navigation transitions
+  /// and restarts the stream once the route pops back.
+  Future<void> _loadScreen(String routeName) async {
+    final scannerBloc = context.read<QrScannerBloc>();
+    scannerBloc.add(PauseCamera());
+
+    await context.push(routeName);
+
+    if (!mounted) return;
+    scannerBloc.add(StartCamera());
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
     return BlocConsumer<QrScannerBloc, QrScannerState>(
       listener: (context, state) async {
         if (state.data != null) {
-          await context.push("/scanned", extra: state.data);
-          // ignore: use_build_context_synchronously
-          BlocProvider.of<QrScannerBloc>(context).add(OnReturn());
+          final scannerBloc = context.read<QrScannerBloc>();
+          await context.push('/scanned', extra: state.data);
+
+          if (!mounted) return;
+          scannerBloc.add(OnReturn());
         }
       },
       builder: (context, state) {
@@ -65,89 +72,80 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
           appBar: AppBar(
             centerTitle: true,
             title: Text(
-              "Scan Master",
+              'Scan Master',
               style: appBarHeading(),
             ),
             backgroundColor: Colors.transparent,
             foregroundColor: Colors.white,
             actions: [
               BlocBuilder<QrScannerBloc, QrScannerState>(
-                builder: (context, state) {
+                builder: (context, scannerState) {
+                  final isFlashOn = scannerState.flashOn ?? false;
                   return IconButton(
-                      onPressed: () => BlocProvider.of<QrScannerBloc>(context)
-                          .add(OnFlashClick()),
-                      icon: Icon(state.flashOn ?? false
+                    tooltip: isFlashOn ? 'Turn off flash' : 'Turn on flash',
+                    onPressed: () =>
+                        context.read<QrScannerBloc>().add(OnFlashClick()),
+                    icon: Icon(
+                      isFlashOn
                           ? Icons.flash_on_rounded
-                          : Icons.flash_off_rounded));
+                          : Icons.flash_off_rounded,
+                    ),
+                  );
                 },
               ),
-              const SizedBox(
-                width: 5,
-              )
+              const SizedBox(width: 5),
             ],
           ),
           drawer: SafeArea(
             child: Drawer(
               shape: const RoundedRectangleBorder(
-                  borderRadius: BorderRadius.only(
-                      topRight: Radius.circular(20),
-                      bottomRight: Radius.circular(20))),
+                borderRadius: BorderRadius.only(
+                  topRight: Radius.circular(20),
+                  bottomRight: Radius.circular(20),
+                ),
+              ),
               child: Column(
                 children: [
                   DrawerHeader(
-                      decoration: BoxDecoration(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .secondaryContainer
-                              .withOpacity(.5)),
-                      child: Container(
-                        alignment: Alignment.bottomLeft,
-                        child: RichText(
-                          text: TextSpan(
-                              style: drawerTextStyle(
-                                  color: Theme.of(context)
-                                      .colorScheme
-                                      .onBackground),
-                              children: [
-                                const TextSpan(text: "Scan Master"),
-                                TextSpan(
-                                    text: "\nDeveloped by Sagar Patel",
-                                    style: defaultTextStyle(fontSize: 12))
-                              ]),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.secondaryContainer.withValues(
+                        alpha: 0.5,
+                      ),
+                    ),
+                    child: Container(
+                      alignment: Alignment.bottomLeft,
+                      child: RichText(
+                        text: TextSpan(
+                          style: drawerTextStyle(
+                            color: theme.colorScheme.onSurface,
+                          ),
+                          children: [
+                            const TextSpan(text: 'Scan Master'),
+                            TextSpan(
+                              text: '\nDeveloped by Sagar Patel',
+                              style: defaultTextStyle(fontSize: 12),
+                            ),
+                          ],
                         ),
-                      )),
-                  // ListTile(
-                  //   leading: const Icon(
-                  //     Icons.qr_code_rounded,
-                  //     size: 26,
-                  //   ),
-                  //   title: Text(
-                  //     "Create",
-                  //     style: defaultTextStyle(),
-                  //   ),
-                  //   shape: RoundedRectangleBorder(
-                  //       borderRadius: BorderRadius.circular(15)),
-                  //   dense: true,
-                  //   onTap: () {
-                  //     Navigator.pop(context);
-                  //     context.go("/create");
-                  //   },
-                  // ),
+                      ),
+                    ),
+                  ),
                   ListTile(
                     leading: const Icon(
                       Icons.star_border_rounded,
                       size: 26,
                     ),
                     title: Text(
-                      "Favorites",
+                      'Favorites',
                       style: defaultTextStyle(),
                     ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15)),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
                     dense: true,
                     onTap: () {
                       Navigator.pop(context);
-                      loadScreen("/favorites");
+                      _loadScreen('/favorites');
                     },
                   ),
                   ListTile(
@@ -156,15 +154,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       size: 26,
                     ),
                     title: Text(
-                      "History",
+                      'History',
                       style: defaultTextStyle(),
                     ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15)),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
                     dense: true,
                     onTap: () {
                       Navigator.pop(context);
-                      loadScreen("/history");
+                      _loadScreen('/history');
                     },
                   ),
                   ListTile(
@@ -173,15 +172,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       size: 26,
                     ),
                     title: Text(
-                      "Settings",
+                      'Settings',
                       style: defaultTextStyle(),
                     ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15)),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
                     dense: true,
                     onTap: () {
                       Navigator.pop(context);
-                      loadScreen("/settings");
+                      _loadScreen('/settings');
                     },
                   ),
                   ListTile(
@@ -190,15 +190,16 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       size: 26,
                     ),
                     title: Text(
-                      "About",
+                      'About',
                       style: defaultTextStyle(),
                     ),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(15)),
+                      borderRadius: BorderRadius.circular(15),
+                    ),
                     dense: true,
                     onTap: () {
                       Navigator.pop(context);
-                      loadScreen("/about");
+                      _loadScreen('/about');
                     },
                   ),
                 ],
@@ -210,23 +211,27 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
             children: [
               if (state.mobileScannerController != null)
                 MobileScanner(
-                  key: qrKey,
-                  autoLifecycle: false,
+                  key: _qrKey,
                   onDetect: (barcodes) {
-                    if (BlocProvider.of<SettingsBloc>(context).saveHistory) {
-                      BlocProvider.of<HistoryBloc>(context)
+                    if (context.read<SettingsBloc>().saveHistory) {
+                      context
+                          .read<HistoryBloc>()
                           .add(OnAddHistoryClicked(barcodes));
                     }
-                    BlocProvider.of<QrScannerBloc>(context)
-                        .add(OnScannedData(barcodes));
+                    context.read<QrScannerBloc>().add(OnScannedData(barcodes));
                   },
                   controller: state.mobileScannerController ??
                       MobileScannerController(),
-                  overlay: Container(
-                    decoration: ShapeDecoration(
+                  overlayBuilder: (context, _) {
+                    return Container(
+                      decoration: ShapeDecoration(
                         shape: QrScannerOverlay(
-                            borderColor: Colors.white, borderRadius: 20)),
-                  ),
+                          borderColor: Colors.white,
+                          borderRadius: 20,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               Align(
                 alignment: Alignment.bottomCenter,
@@ -239,27 +244,23 @@ class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
                       SizedBox(
                         height: 50,
                         child: ElevatedButton(
-                            onPressed: () {
-                              loadScreen("/history");
-                            },
-                            style: ElevatedButton.styleFrom(
-                                foregroundColor:
-                                    Theme.of(context).colorScheme.onBackground,
-                                backgroundColor:
-                                    Theme.of(context).colorScheme.background),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.history_rounded),
-                                const SizedBox(
-                                  width: 5,
-                                ),
-                                Text(
-                                  "History",
-                                  style: centerFloatingHeading(),
-                                ),
-                              ],
-                            )),
-                      )
+                          onPressed: () => _loadScreen('/history'),
+                          style: ElevatedButton.styleFrom(
+                            foregroundColor: theme.colorScheme.onSurface,
+                            backgroundColor: theme.colorScheme.surface,
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.history_rounded),
+                              const SizedBox(width: 5),
+                              Text(
+                                'History',
+                                style: centerFloatingHeading(),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                 ),

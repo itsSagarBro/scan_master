@@ -76,7 +76,7 @@ String _getTextFromWifi(Barcode barcode) {
       String type = "";
 
       switch (barcode.wifi?.encryptionType) {
-        case EncryptionType.none:
+        case EncryptionType.unknown:
           type = "NONE";
           break;
         case EncryptionType.wep:

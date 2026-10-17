@@ -1,8 +1,9 @@
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 
+/// a custom [ShapeBorder] that renders a darkened camera viewfinder overlay
+/// with a transparent cutout and framed corner reticles for qr or barcode scanning.
 class QrScannerOverlay extends ShapeBorder {
   QrScannerOverlay({
     this.borderColor = Colors.red,
@@ -22,18 +23,34 @@ class QrScannerOverlay extends ShapeBorder {
       "Border can't be larger than ${min(this.cutOutWidth, this.cutOutHeight) / 2 + borderWidth * 2}",
     );
     assert(
-        (cutOutWidth == null && cutOutHeight == null) ||
-            (cutOutSize == null && cutOutWidth != null && cutOutHeight != null),
-        'Use only cutOutWidth and cutOutHeight or only cutOutSize');
+      (cutOutWidth == null && cutOutHeight == null) ||
+          (cutOutSize == null && cutOutWidth != null && cutOutHeight != null),
+      'Use only cutOutWidth and cutOutHeight or only cutOutSize',
+    );
   }
 
+  /// stroke color of the scanner viewfinder corners
   final Color borderColor;
+
+  /// thickness of the corner reticle lines
   final double borderWidth;
+
+  /// background tint color applied outside the scanner cutout area
   final Color overlayColor;
+
+  /// corner radius applied to both the cutout window and the bounding reticle corners
   final double borderRadius;
+
+  /// length of the horizontal and vertical edges forming each viewfinder corner
   final double borderLength;
+
+  /// horizontal width of the transparent scan target window
   final double cutOutWidth;
+
+  /// vertical height of the transparent scan target window
   final double cutOutHeight;
+
+  /// vertical positional offset from center, allowing the cutout to sit slightly higher
   final double cutOutBottomOffset;
 
   @override
@@ -76,27 +93,33 @@ class QrScannerOverlay extends ShapeBorder {
     final borderWidthSize = width / 2;
     final height = rect.height;
     final borderOffset = borderWidth / 2;
+
+    // ensure corner border length stays within half the dimensions of the cutout box
     final bl =
-        borderLength > min(cutOutHeight, cutOutHeight) / 2 + borderWidth * 2
+        borderLength > min(cutOutWidth, cutOutHeight) / 2 + borderWidth * 2
             ? borderWidthSize / 2
             : borderLength;
     final cow = cutOutWidth < width ? cutOutWidth : width - borderOffset;
     final coh = cutOutHeight < height ? cutOutHeight : height - borderOffset;
 
+    // overlay shade paint
     final backgroundPaint = Paint()
       ..color = overlayColor
       ..style = PaintingStyle.fill;
 
+    // corner frame reticle paint
     final borderPaint = Paint()
       ..color = borderColor
       ..style = PaintingStyle.stroke
       ..strokeWidth = borderWidth;
 
+    // punch-through paint using dstOut blend mode to punch the transparent hole
     final boxPaint = Paint()
       ..color = borderColor
       ..style = PaintingStyle.fill
       ..blendMode = BlendMode.dstOut;
 
+    // calculate centered cutout position taking bottom offset into account
     final cutOutRect = Rect.fromLTWH(
       rect.left + width / 2 - cow / 2 + borderOffset,
       -cutOutBottomOffset + rect.top + height / 2 - coh / 2 + borderOffset,
@@ -104,6 +127,7 @@ class QrScannerOverlay extends ShapeBorder {
       coh - borderOffset * 2,
     );
 
+    // render overlay, draw corner highlights, then cut out the center window
     canvas
       ..saveLayer(
         rect,
@@ -113,7 +137,7 @@ class QrScannerOverlay extends ShapeBorder {
         rect,
         backgroundPaint,
       )
-      // Draw top right corner
+      // draw top right corner
       ..drawRRect(
         RRect.fromLTRBAndCorners(
           cutOutRect.right - bl,
@@ -124,7 +148,7 @@ class QrScannerOverlay extends ShapeBorder {
         ),
         borderPaint,
       )
-      // Draw top left corner
+      // draw top left corner
       ..drawRRect(
         RRect.fromLTRBAndCorners(
           cutOutRect.left,
@@ -135,7 +159,7 @@ class QrScannerOverlay extends ShapeBorder {
         ),
         borderPaint,
       )
-      // Draw bottom right corner
+      // draw bottom right corner
       ..drawRRect(
         RRect.fromLTRBAndCorners(
           cutOutRect.right - bl,
@@ -146,7 +170,7 @@ class QrScannerOverlay extends ShapeBorder {
         ),
         borderPaint,
       )
-      // Draw bottom left corner
+      // draw bottom left corner
       ..drawRRect(
         RRect.fromLTRBAndCorners(
           cutOutRect.left,
@@ -157,6 +181,7 @@ class QrScannerOverlay extends ShapeBorder {
         ),
         borderPaint,
       )
+      // clear the transparent window inside the overlay
       ..drawRRect(
         RRect.fromRectAndRadius(
           cutOutRect,
@@ -171,8 +196,13 @@ class QrScannerOverlay extends ShapeBorder {
   ShapeBorder scale(double t) {
     return QrScannerOverlay(
       borderColor: borderColor,
-      borderWidth: borderWidth,
+      borderWidth: borderWidth * t,
       overlayColor: overlayColor,
+      borderRadius: borderRadius * t,
+      borderLength: borderLength * t,
+      cutOutWidth: cutOutWidth * t,
+      cutOutHeight: cutOutHeight * t,
+      cutOutBottomOffset: cutOutBottomOffset * t,
     );
   }
 }

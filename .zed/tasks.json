@@ -1,0 +1,38 @@
+[
+  {
+    "label": "Flutter: Start (Dashmon)",
+    "command": "dashmonx --include-wireless --pid-file /tmp/flutter.pid",
+    "use_new_terminal": true,
+    "allow_concurrent_runs": false,
+    "reveal": "always",
+    "reveal_target": "dock",
+    "hide": "never",
+    "shell": "system",
+    "save": "all",
+  },
+  {
+    "label": "Flutter: Hot Reload (Manual)",
+    "command": "kill -USR1 $(cat /tmp/flutter.pid)",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": true,
+    "reveal": "never",
+    "shell": "system",
+    "save": "all",
+  },
+  {
+    "label": "Flutter: Hot Restart",
+    "command": "kill -USR2 $(cat /tmp/flutter.pid)",
+    "use_new_terminal": false,
+    "allow_concurrent_runs": true,
+    "reveal": "never",
+    "shell": "system",
+    "save": "all",
+  },
+  {
+    "label": "Flutter: Clean & Get",
+    "command": "flutter clean && flutter pub get",
+    "use_new_terminal": true,
+    "reveal": "always",
+    "shell": "system",
+  },
+]

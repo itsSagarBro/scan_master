@@ -1,7 +1,7 @@
 import 'package:bloc/bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
-import 'package:image_gallery_saver/image_gallery_saver.dart';
+import 'package:image_gallery_saver_plus/image_gallery_saver_plus.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:scan_master/models/history_model.dart';
 import 'package:scan_master/utils/get_lauch_url.dart';
@@ -36,7 +36,7 @@ class ScannedResultBloc extends Bloc<ScannedResultEvent, ScannedResultState> {
           if (image != null) {
             String fileName = "${event.name} ${DateTime.now().toString()}";
             fileName = fileName.replaceAll(":", "-").replaceAll(".", "-");
-            await ImageGallerySaver.saveImage(image, name: fileName);
+            await ImageGallerySaverPlus.saveImage(image, name: fileName);
           }
         });
 

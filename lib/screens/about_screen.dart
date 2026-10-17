@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:launch_review/launch_review.dart';
+import 'package:launch_review_latest/launch_review_latest.dart';
 import 'package:scan_master/utils/text_styles.dart';
 
 class AboutScreen extends StatelessWidget {
@@ -23,7 +23,7 @@ class AboutScreen extends StatelessWidget {
                   "Rate Now",
                   style: defaultTextStyle(fontSize: 14),
                 ),
-                onTap: () => LaunchReview.launch(
+                onTap: () => LaunchReviewLatest.launch(
                     androidAppId: 'com.untitledstudio.scan_master'),
               ),
             ],
