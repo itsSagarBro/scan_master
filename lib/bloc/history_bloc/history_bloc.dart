@@ -6,22 +6,25 @@ import 'package:scan_master/models/history_model.dart';
 part 'history_event.dart';
 part 'history_state.dart';
 
-/// manages persistent scan history operations including adding, deleting,
-/// toggling favorites, and bulk unmark actions via hive local storage.
 class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
   HistoryBloc() : super(HistoryState.initial()) {
     final Box<dynamic> box = Hive.box('history');
 
-    // add a newly scanned item to the history box
     on<OnAddHistoryClicked>((event, emit) async {
       if (event.barcode.barcodes.isEmpty) return;
 
+      final first = event.barcode.barcodes.first;
+      final payload = first.rawValue ?? first.displayValue ?? '';
       final id = DateTime.now().millisecondsSinceEpoch.toString();
+
       final scannedModel = ScannedModel(
         id: id,
-        name: event.barcode.barcodes.first.displayValue,
+        name: first.displayValue ?? payload,
         datetime: DateTime.now().toIso8601String(),
         favorite: false,
+        rawValue: payload,
+        format: first.format,
+        type: first.type,
         raw: event.barcode.raw,
       );
 
@@ -29,7 +32,6 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
       emit(state.copyWith(box.values.toList()));
     });
 
-    // remove an item from history by its unique identifier
     on<OnDeleteHistoryClicked>((event, emit) async {
       if (box.containsKey(event.id)) {
         await box.delete(event.id);
@@ -37,27 +39,37 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
       }
     });
 
-    // delete all history records from persistent storage
     on<OnDeleteAllHistoryClicked>((event, emit) async {
       await box.clear();
       emit(state.copyWith(box.values.toList()));
     });
 
-    // toggle the favorite bookmark status of a specific scan record
+    // Toggle favorite or auto-insert if record was not yet written to Hive
     on<OnFavoriteToggleClicked>((event, emit) async {
-      if (box.containsKey(event.id)) {
-        final existingRaw = box.get(event.id);
+      final id = event.model?.id ?? event.id;
+      if (id == null || id.isEmpty) return;
+
+      if (box.containsKey(id)) {
+        final existingRaw = box.get(id);
         final scannedModel = ScannedModel.fromJson(existingRaw as Map);
         final updatedModel = scannedModel.copyWith(
           favorite: !(scannedModel.favorite ?? false),
         );
 
-        await box.put(event.id, updatedModel.toJson());
-        emit(state.copyWith(box.values.toList()));
+        await box.put(id, updatedModel.toJson());
+      } else if (event.model != null) {
+        // Record was not in Hive yet (e.g., live scan with save history off)
+        final newModel = event.model!.copyWith(
+          id: id,
+          favorite: !(event.model!.favorite ?? false),
+          datetime: event.model!.datetime ?? DateTime.now().toIso8601String(),
+        );
+        await box.put(id, newModel.toJson());
       }
+
+      emit(state.copyWith(box.values.toList()));
     });
 
-    // clear the favorite status across all currently bookmarked scans
     on<OnUnfavoriteAllClicked>((event, emit) async {
       for (final item in state.favoriteData) {
         final scannedModel = ScannedModel.fromJson(item as Map);
@@ -66,7 +78,6 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
           await box.put(scannedModel.id, updatedModel.toJson());
         }
       }
-
       emit(state.copyWith(box.values.toList()));
     });
   }

@@ -68,12 +68,11 @@ class FavoritesScreen extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 15),
             itemBuilder: (context, index) {
               final scannedModel =
-                  ScannedModel.fromJson(state.favoriteData[index]);
-              final barcode = (scannedModel.raw as List)
-                  .map((e) => Barcode.fromNative(e as Map))
-                  .toList()
-                  .first;
-
+                  ScannedModel.fromJson(state.favoriteData[index] as Map);
+              final displayTitle =
+                  scannedModel.format?.name.toUpperCase() ?? 'QR CODE';
+              final displaySubtitle =
+                  scannedModel.rawValue ?? scannedModel.name ?? 'No Content';
               final isFavorite = scannedModel.favorite ?? false;
               final scannedId = scannedModel.id;
 
@@ -139,24 +138,24 @@ class FavoritesScreen extends StatelessWidget {
                           TextSpan(
                             style: defaultTextStyle(
                               fontSize: 13,
-                              color: theme.colorScheme.onSurface.withValues(
-                                alpha: 0.5,
-                              ),
+                              color: theme.colorScheme.onSurface
+                                  .withValues(alpha: 0.5),
                             ),
                             children: [
                               TextSpan(
-                                text: '${barcode.type.name.toUpperCase()}\n',
+                                text: '$displayTitle\n',
                                 style: defaultTextStyle(
                                   fontSize: 16,
                                   color: theme.colorScheme.onSurface,
                                 ).copyWith(fontWeight: FontWeight.w600),
                               ),
                               TextSpan(
-                                text:
-                                    '${_formattedTime(DateTime.parse(scannedModel.datetime!))}, ${barcode.format.name.toUpperCase()}',
+                                text: scannedModel.datetime != null
+                                    ? '${_formattedTime(DateTime.parse(scannedModel.datetime!))}\n'
+                                    : '',
                               ),
                               TextSpan(
-                                text: '\n${getDisplayValue(barcode)}',
+                                text: displaySubtitle,
                               ),
                             ],
                           ),

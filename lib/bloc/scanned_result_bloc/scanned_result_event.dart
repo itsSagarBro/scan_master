@@ -32,3 +32,7 @@ final class OnShareClick extends ScannedResultEvent {
     required this.shareImage,
   });
 }
+
+final class ToggleFavorite extends ScannedResultEvent {
+  const ToggleFavorite();
+}

@@ -181,5 +181,15 @@ class ScannedResultBloc extends Bloc<ScannedResultEvent, ScannedResultState> {
         message: 'Copied to clipboard',
       ));
     });
+
+    on<ToggleFavorite>((event, emit) {
+      final current = state.scannedModel;
+      final toggled = !(current.favorite ?? false);
+      emit(state.copyWith(
+        scannedModel: current.copyWith(favorite: toggled),
+        message: toggled ? 'Added to favorites' : 'Removed from favorites',
+        actionStatus: ActionStatus.success,
+      ));
+    });
   }
 }

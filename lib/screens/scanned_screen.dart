@@ -222,10 +222,10 @@ class _ScannedScreenState extends State<ScannedScreen> {
                     final currentRecord = currentId != null
                         ? historyState.getOneData(currentId)
                         : null;
-                    final currentModel = currentRecord != null
-                        ? ScannedModel.fromJson(currentRecord as Map)
-                        : state.scannedModel;
-                    final isFavorite = currentModel.favorite ?? false;
+
+                    final isFavorite = currentRecord != null
+                        ? (currentRecord['favorite'] == true)
+                        : (state.scannedModel.favorite ?? false);
 
                     return IconButton(
                       tooltip: isFavorite ? 'Remove Favorite' : 'Save Favorite',
@@ -236,11 +236,21 @@ class _ScannedScreenState extends State<ScannedScreen> {
                         color: isFavorite ? Colors.amber : null,
                       ),
                       onPressed: () {
-                        if (currentId != null) {
-                          context
-                              .read<HistoryBloc>()
-                              .add(OnFavoriteToggleClicked(currentId));
-                        }
+                        final effectiveId = currentId ??
+                            DateTime.now().millisecondsSinceEpoch.toString();
+                        final effectiveModel =
+                            state.scannedModel.copyWith(id: effectiveId);
+
+                        // 1. Persist/toggle in Hive
+                        context.read<HistoryBloc>().add(
+                              OnFavoriteToggleClicked(effectiveId,
+                                  model: effectiveModel),
+                            );
+
+                        // 2. Update local ScannedResultBloc state
+                        context
+                            .read<ScannedResultBloc>()
+                            .add(const ToggleFavorite());
                       },
                     );
                   },
