@@ -1,6 +1,8 @@
-import 'package:auto_size_text/auto_size_text.dart';
+import 'dart:ui';
+
 import 'package:barcode_widget/barcode_widget.dart' as barcode_widget;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -32,7 +34,6 @@ class _ScannedScreenState extends State<ScannedScreen> {
     });
   }
 
-  /// Extracts the effective string payload from any available field
   String _resolveRawPayload(ScannedModel model) {
     if (model.rawValue != null && model.rawValue!.trim().isNotEmpty) {
       return model.rawValue!.trim();
@@ -60,7 +61,6 @@ class _ScannedScreenState extends State<ScannedScreen> {
     return '';
   }
 
-  /// Resolves the Barcode instance prioritizing typed fields, fallback string, or legacy maps
   Barcode? _extractBarcode(ScannedModel model) {
     final payload = _resolveRawPayload(model);
     if (payload.isNotEmpty) {
@@ -151,16 +151,16 @@ class _ScannedScreenState extends State<ScannedScreen> {
       child: Container(
         color: Colors.white,
         padding: const EdgeInsets.all(12),
-        width: showAsQr ? 200 : 250,
-        height: showAsQr ? 200 : 100,
+        width: showAsQr ? 190 : 250,
+        height: showAsQr ? 190 : 100,
         alignment: Alignment.center,
         child: barcode_widget.BarcodeWidget(
           barcode: finalBarcode,
           data: cleanData,
           backgroundColor: Colors.white,
           color: Colors.black,
-          width: showAsQr ? 180 : 230,
-          height: showAsQr ? 180 : 76,
+          width: showAsQr ? 170 : 230,
+          height: showAsQr ? 170 : 76,
           drawText: !showAsQr,
           errorBuilder: (context, error) {
             return barcode_widget.BarcodeWidget(
@@ -168,8 +168,8 @@ class _ScannedScreenState extends State<ScannedScreen> {
               data: cleanData,
               backgroundColor: Colors.white,
               color: Colors.black,
-              width: 180,
-              height: 180,
+              width: 170,
+              height: 170,
               drawText: false,
             );
           },
@@ -178,9 +178,23 @@ class _ScannedScreenState extends State<ScannedScreen> {
     );
   }
 
+  IconData _getTypeIcon(BarcodeType? type) {
+    return switch (type) {
+      BarcodeType.url => Icons.link_rounded,
+      BarcodeType.wifi => Icons.wifi_rounded,
+      BarcodeType.phone => Icons.call_rounded,
+      BarcodeType.sms => Icons.sms_outlined,
+      BarcodeType.email => Icons.email_outlined,
+      BarcodeType.contactInfo => Icons.person_outline_rounded,
+      BarcodeType.geo => Icons.location_on_outlined,
+      _ => Icons.qr_code_rounded,
+    };
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final size = MediaQuery.of(context).size;
 
     return BlocListener<ScannedResultBloc, ScannedResultState>(
       listenWhen: (prev, current) =>
@@ -194,7 +208,7 @@ class _ScannedScreenState extends State<ScannedScreen> {
               behavior: SnackBarBehavior.floating,
               duration: const Duration(seconds: 2),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(14),
               ),
               backgroundColor: state.actionStatus == ActionStatus.failure
                   ? theme.colorScheme.error
@@ -212,234 +226,517 @@ class _ScannedScreenState extends State<ScannedScreen> {
               : (rawPayload.isNotEmpty ? rawPayload : 'No data found');
           final currentId = state.scannedModel.id;
 
+          final formatName = (barcode?.format ??
+                  state.scannedModel.format ??
+                  BarcodeFormat.qrCode)
+              .name
+              .toUpperCase();
+          final typeName =
+              (barcode?.type ?? state.scannedModel.type ?? BarcodeType.text)
+                  .name
+                  .toUpperCase();
+
           return Scaffold(
-            appBar: AppBar(
-              centerTitle: true,
-              title: Text('Scanned Result', style: appBarHeading()),
-              actions: [
-                BlocBuilder<HistoryBloc, HistoryState>(
-                  builder: (context, historyState) {
-                    final currentRecord = currentId != null
-                        ? historyState.getOneData(currentId)
-                        : null;
-
-                    final isFavorite = currentRecord != null
-                        ? (currentRecord['favorite'] == true)
-                        : (state.scannedModel.favorite ?? false);
-
-                    return IconButton(
-                      tooltip: isFavorite ? 'Remove Favorite' : 'Save Favorite',
-                      icon: Icon(
-                        isFavorite
-                            ? Icons.star_rounded
-                            : Icons.star_outline_rounded,
-                        color: isFavorite ? Colors.amber : null,
-                      ),
-                      onPressed: () {
-                        final effectiveId = currentId ??
-                            DateTime.now().millisecondsSinceEpoch.toString();
-                        final effectiveModel =
-                            state.scannedModel.copyWith(id: effectiveId);
-
-                        // 1. Persist/toggle in Hive
-                        context.read<HistoryBloc>().add(
-                              OnFavoriteToggleClicked(effectiveId,
-                                  model: effectiveModel),
-                            );
-
-                        // 2. Update local ScannedResultBloc state
-                        context
-                            .read<ScannedResultBloc>()
-                            .add(const ToggleFavorite());
-                      },
-                    );
-                  },
-                ),
-                IconButton(
-                  tooltip: 'Settings',
-                  icon: const Icon(Icons.settings_outlined),
-                  onPressed: () => context.push('/settings'),
-                ),
-                const SizedBox(width: 4),
-              ],
-            ),
-            body: SafeArea(
-              child: SingleChildScrollView(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 8),
-
-                    // Barcode / QR Preview Card
-                    Center(
-                      child: Material(
-                        elevation: 2,
-                        shadowColor:
-                            theme.colorScheme.shadow.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        color: Colors.white,
-                        child: Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: state.screenshotController != null
-                              ? _buildBarcodePreview(
-                                  screenshotController:
-                                      state.screenshotController!,
-                                  rawData: rawPayload,
-                                  format: barcode?.format ??
-                                      state.scannedModel.format ??
-                                      BarcodeFormat.qrCode,
-                                )
-                              : const SizedBox(
-                                  height: 180,
-                                  width: 180,
-                                  child: Center(
-                                    child: Icon(Icons.qr_code_2,
-                                        size: 80, color: Colors.grey),
-                                  ),
-                                ),
-                        ),
+            body: Stack(
+              children: [
+                // 1. Rich Layered Ambient Mesh Glow
+                Positioned(
+                  top: -80,
+                  right: -60,
+                  child: Container(
+                    width: size.width * 0.75,
+                    height: size.width * 0.75,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          theme.colorScheme.primary.withValues(alpha: 0.22),
+                          theme.colorScheme.primary.withValues(alpha: 0.0),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 24),
-
-                    // Payload Content Card
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.surfaceContainerHighest
-                            .withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: theme.colorScheme.outlineVariant
-                              .withValues(alpha: 0.4),
-                        ),
+                  ),
+                ),
+                Positioned(
+                  bottom: size.height * 0.2,
+                  left: -80,
+                  child: Container(
+                    width: size.width * 0.7,
+                    height: size.width * 0.7,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          theme.colorScheme.tertiary.withValues(alpha: 0.16),
+                          theme.colorScheme.tertiary.withValues(alpha: 0.0),
+                        ],
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          if (barcode != null)
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.info_outline,
-                                  size: 16,
-                                  color: theme.colorScheme.primary,
+                    ),
+                  ),
+                ),
+
+                // 2. Full-Canvas Subtle Blur Smoothing
+                Positioned.fill(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                    child: const SizedBox.expand(),
+                  ),
+                ),
+
+                // 3. Scrollable Main Content
+                SafeArea(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(20, 76, 20, 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Barcode Render Hero Card with Frosted Container Frame
+                        Center(
+                          child: Container(
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(28),
+                              border: Border.all(
+                                color: Colors.white.withValues(alpha: 0.6),
+                                width: 1.5,
+                              ),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: theme.colorScheme.primary
+                                      .withValues(alpha: 0.14),
+                                  blurRadius: 36,
+                                  offset: const Offset(0, 16),
                                 ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  barcode.format.name.toUpperCase(),
-                                  style: defaultTextStyle(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: theme.colorScheme.primary,
-                                  ),
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.05),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
-                          const SizedBox(height: 8),
-                          AutoSizeText(
-                            displayText,
-                            minFontSize: 14,
-                            maxLines: 8,
-                            style: defaultTextStyle(fontSize: 15),
+                            padding: const EdgeInsets.all(16),
+                            child: state.screenshotController != null
+                                ? _buildBarcodePreview(
+                                    screenshotController:
+                                        state.screenshotController!,
+                                    rawData: rawPayload,
+                                    format: barcode?.format ??
+                                        state.scannedModel.format ??
+                                        BarcodeFormat.qrCode,
+                                  )
+                                : const SizedBox(
+                                    height: 180,
+                                    width: 180,
+                                    child: Center(
+                                      child: Icon(Icons.qr_code_2,
+                                          size: 80, color: Colors.grey),
+                                    ),
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+
+                        // Format & Type Capsule Badges
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.primaryContainer
+                                    .withValues(alpha: 0.8),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: theme.colorScheme.primary
+                                      .withValues(alpha: 0.15),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    _getTypeIcon(barcode?.type ??
+                                        state.scannedModel.type),
+                                    size: 14,
+                                    color: theme.colorScheme.onPrimaryContainer,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    typeName,
+                                    style: defaultTextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color:
+                                          theme.colorScheme.onPrimaryContainer,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.65),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: theme.colorScheme.outlineVariant
+                                      .withValues(alpha: 0.3),
+                                ),
+                              ),
+                              child: Text(
+                                formatName,
+                                style: defaultTextStyle(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 22),
+
+                        // Scanned Content Card
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: BackdropFilter(
+                            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                            child: Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(20),
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.surfaceContainerHighest
+                                    .withValues(alpha: 0.45),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: theme.colorScheme.outlineVariant
+                                      .withValues(alpha: 0.35),
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        'RESULT DATA',
+                                        style: defaultTextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w700,
+                                          color: theme.colorScheme.primary,
+                                        ),
+                                      ),
+                                      InkWell(
+                                        borderRadius: BorderRadius.circular(8),
+                                        onTap: () {
+                                          HapticFeedback.lightImpact();
+                                          context
+                                              .read<ScannedResultBloc>()
+                                              .add(OnCopyClick(displayText));
+                                        },
+                                        child: Padding(
+                                          padding: const EdgeInsets.all(4),
+                                          child: Icon(
+                                            Icons.copy_rounded,
+                                            size: 16,
+                                            color: theme.colorScheme.primary,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  const SizedBox(height: 10),
+                                  SelectableText(
+                                    displayText,
+                                    style: defaultTextStyle(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: theme.colorScheme.onSurface,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+
+                        // Primary Contextual Action Button
+                        if (barcode != null) ...[
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: FilledButton.icon(
+                              style: FilledButton.styleFrom(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(18),
+                                ),
+                                elevation: 2,
+                              ),
+                              onPressed: () {
+                                HapticFeedback.mediumImpact();
+                                context
+                                    .read<ScannedResultBloc>()
+                                    .add(OnActionClick(barcode));
+                              },
+                              icon: const Icon(Icons.open_in_new_rounded,
+                                  size: 20),
+                              label: Text(
+                                getButtonText(barcode),
+                                style: defaultTextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.colorScheme.onPrimary,
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 14),
+                        ],
+
+                        // Secondary Action Buttons Row
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildSecondaryActionButton(
+                                theme: theme,
+                                icon: Icons.copy_rounded,
+                                label: 'Copy',
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  context
+                                      .read<ScannedResultBloc>()
+                                      .add(OnCopyClick(displayText));
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _buildSecondaryActionButton(
+                                theme: theme,
+                                icon: Icons.download_rounded,
+                                label: 'Save',
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  context.read<ScannedResultBloc>().add(
+                                        OnDownloadClick(
+                                          barcode?.displayValue ?? 'Barcode',
+                                        ),
+                                      );
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: _buildSecondaryActionButton(
+                                theme: theme,
+                                icon: Icons.share_rounded,
+                                label: 'Share',
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  context.read<ScannedResultBloc>().add(
+                                        OnShareClick(
+                                          value: displayText,
+                                          shareImage: context
+                                              .read<SettingsBloc>()
+                                              .shareQrImage,
+                                        ),
+                                      );
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 4. Top Frosted Navigation Bar
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: SafeArea(
+                    bottom: false,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 20, vertical: 8),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          _buildCircleIconButton(
+                            theme: theme,
+                            icon: Icons.arrow_back_ios_new_rounded,
+                            tooltip: 'Back',
+                            onTap: () => context.pop(),
+                          ),
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(22),
+                            child: BackdropFilter(
+                              filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 20, vertical: 9),
+                                decoration: BoxDecoration(
+                                  color: theme.colorScheme.surface
+                                      .withValues(alpha: 0.72),
+                                  borderRadius: BorderRadius.circular(22),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.16),
+                                  ),
+                                ),
+                                child: Text(
+                                  'Scan Result',
+                                  style: defaultTextStyle(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          BlocBuilder<HistoryBloc, HistoryState>(
+                            builder: (context, historyState) {
+                              final currentRecord = currentId != null
+                                  ? historyState.getOneData(currentId)
+                                  : null;
+
+                              final isFavorite = currentRecord != null
+                                  ? (currentRecord['favorite'] == true)
+                                  : (state.scannedModel.favorite ?? false);
+
+                              return _buildCircleIconButton(
+                                theme: theme,
+                                icon: isFavorite
+                                    ? Icons.star_rounded
+                                    : Icons.star_outline_rounded,
+                                iconColor: isFavorite
+                                    ? Colors.amber
+                                    : theme.colorScheme.onSurface,
+                                tooltip: isFavorite
+                                    ? 'Remove Favorite'
+                                    : 'Save Favorite',
+                                onTap: () {
+                                  HapticFeedback.selectionClick();
+                                  final effectiveId = currentId ??
+                                      DateTime.now()
+                                          .millisecondsSinceEpoch
+                                          .toString();
+                                  final effectiveModel = state.scannedModel
+                                      .copyWith(id: effectiveId);
+
+                                  context.read<HistoryBloc>().add(
+                                        OnFavoriteToggleClicked(effectiveId,
+                                            model: effectiveModel),
+                                      );
+                                  context
+                                      .read<ScannedResultBloc>()
+                                      .add(const ToggleFavorite());
+                                },
+                              );
+                            },
                           ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 24),
-
-                    // Primary Contextual Action Button
-                    if (barcode != null)
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: FilledButton.icon(
-                          onPressed: () => context
-                              .read<ScannedResultBloc>()
-                              .add(OnActionClick(barcode)),
-                          icon: const Icon(Icons.open_in_new_rounded),
-                          label: Text(
-                            getButtonText(barcode),
-                            style: defaultTextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ),
-                    const SizedBox(height: 20),
-
-                    // Secondary Action Buttons Row
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(0, 48),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            onPressed: () => context
-                                .read<ScannedResultBloc>()
-                                .add(OnCopyClick(displayText)),
-                            icon: const Icon(Icons.copy_rounded, size: 20),
-                            label: const Text('Copy'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(0, 48),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            onPressed: () =>
-                                context.read<ScannedResultBloc>().add(
-                                      OnDownloadClick(
-                                        barcode?.displayValue ?? 'Barcode',
-                                      ),
-                                    ),
-                            icon: const Icon(Icons.download_rounded, size: 20),
-                            label: const Text('Save'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size(0, 48),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                            ),
-                            onPressed: () =>
-                                context.read<ScannedResultBloc>().add(
-                                      OnShareClick(
-                                        value: displayText,
-                                        shareImage: context
-                                            .read<SettingsBloc>()
-                                            .shareQrImage,
-                                      ),
-                                    ),
-                            icon: const Icon(Icons.share_rounded, size: 20),
-                            label: const Text('Share'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildCircleIconButton({
+    required ThemeData theme,
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback onTap,
+    Color? iconColor,
+  }) {
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+        child: Material(
+          color: theme.colorScheme.surface.withValues(alpha: 0.72),
+          shape: CircleBorder(
+            side: BorderSide(
+              color: Colors.white.withValues(alpha: 0.16),
+            ),
+          ),
+          child: InkWell(
+            onTap: onTap,
+            child: SizedBox(
+              width: 42,
+              height: 42,
+              child: Tooltip(
+                message: tooltip,
+                child: Icon(
+                  icon,
+                  size: 20,
+                  color: iconColor ?? theme.colorScheme.onSurface,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSecondaryActionButton({
+    required ThemeData theme,
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+  }) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Material(
+          color:
+              theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+          borderRadius: BorderRadius.circular(16),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(16),
+            onTap: onTap,
+            child: Container(
+              height: 48,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color:
+                      theme.colorScheme.outlineVariant.withValues(alpha: 0.35),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(icon, size: 18, color: theme.colorScheme.onSurface),
+                  const SizedBox(width: 6),
+                  Text(
+                    label,
+                    style: defaultTextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: theme.colorScheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

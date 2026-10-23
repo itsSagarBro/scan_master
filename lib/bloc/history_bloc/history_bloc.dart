@@ -47,7 +47,7 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
     // Toggle favorite or auto-insert if record was not yet written to Hive
     on<OnFavoriteToggleClicked>((event, emit) async {
       final id = event.model?.id ?? event.id;
-      if (id == null || id.isEmpty) return;
+      if (id.isEmpty) return;
 
       if (box.containsKey(id)) {
         final existingRaw = box.get(id);

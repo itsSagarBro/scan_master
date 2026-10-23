@@ -19,3 +19,8 @@ final class OnReturn extends QrScannerEvent {
 final class PauseCamera extends QrScannerEvent {}
 
 final class StartCamera extends QrScannerEvent {}
+
+final class OnScanImageFromGallery extends QrScannerEvent {
+  final String imagePath;
+  OnScanImageFromGallery(this.imagePath);
+}

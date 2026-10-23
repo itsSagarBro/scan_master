@@ -53,6 +53,39 @@ class QrScannerBloc extends Bloc<QrScannerEvent, QrScannerState> {
         emit(state.copyWith(flashOn: flashOn, data: null));
       }
     });
+
+    on<OnScanImageFromGallery>((event, emit) async {
+      try {
+        final capture =
+            await state.mobileScannerController?.analyzeImage(event.imagePath);
+
+        if (capture != null && capture.barcodes.isNotEmpty) {
+          final first = capture.barcodes.first;
+          final payload = first.rawValue ?? first.displayValue ?? '';
+
+          if (payload.isNotEmpty) {
+            final id = DateTime.now().millisecondsSinceEpoch.toString();
+            final scannedModel = ScannedModel(
+              id: id,
+              name: first.displayValue ?? payload,
+              datetime: DateTime.now().toIso8601String(),
+              favorite: false,
+              rawValue: payload,
+              format: first.format,
+              type: first.type,
+              raw: capture.raw,
+            );
+
+            emit(state.copyWith(flashOn: flashOn, data: scannedModel));
+          }
+        } else {
+          // Trigger return/reset so UI can notify no QR found
+          emit(state.copyWith(flashOn: flashOn, data: null));
+        }
+      } catch (e) {
+        Logger().e('Error scanning from gallery: $e');
+      }
+    });
   }
 
   bool flashOn = false;
