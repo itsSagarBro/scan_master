@@ -25,7 +25,7 @@ def flutterVersionCode = localProperties.getProperty('flutter.versionCode') ?: '
 def flutterVersionName = localProperties.getProperty('flutter.versionName') ?: '1.0.0'
 
 android {
-    namespace "com.scanmaster.app"
+    namespace "dev.sagarpatel.scanmaster"
     compileSdkVersion flutter.compileSdkVersion
     ndkVersion flutter.ndkVersion
 
@@ -44,8 +44,8 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.scanmaster.app"
-        minSdkVersion 21
+        applicationId "dev.sagarpatel.scanmaster"
+        minSdkVersion flutter.minSdkVersion
         targetSdkVersion flutter.targetSdkVersion
         versionCode flutterVersionCode.toInteger()
         versionName flutterVersionName
