@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:scan_master/bloc/history_bloc/history_bloc.dart';
 import 'package:scan_master/bloc/settings_bloc/settings_bloc.dart';
 import 'package:scan_master/utils/text_styles.dart';
 
@@ -178,6 +179,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Navigator.pop(sheetContext);
                   HapticFeedback.selectionClick();
                   bloc.add(OnHistoryDeleteTimeChanged(7));
+                  context
+                      .read<HistoryBloc>()
+                      .add(const OnPruneHistoryExpired(deleteDays: 7));
                 },
               ),
               _buildPickerOption(
@@ -190,6 +194,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Navigator.pop(sheetContext);
                   HapticFeedback.selectionClick();
                   bloc.add(OnHistoryDeleteTimeChanged(30));
+                  context
+                      .read<HistoryBloc>()
+                      .add(const OnPruneHistoryExpired(deleteDays: 30));
                 },
               ),
             ],

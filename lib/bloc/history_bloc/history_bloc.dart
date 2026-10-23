@@ -1,3 +1,4 @@
+// history_bloc.dart
 import 'package:bloc/bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
@@ -9,9 +10,56 @@ part 'history_state.dart';
 class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
   HistoryBloc() : super(HistoryState.initial()) {
     final Box<dynamic> box = Hive.box('history');
+    final Box<dynamic> settingsBox = Hive.box('settings');
+
+    // Helper method to delete expired non-favorite entries
+    Future<void> pruneExpiredRecords([int? overrideDays]) async {
+      final int deleteDays = overrideDays ??
+          (settingsBox.get('deleteHistory', defaultValue: 0) as int);
+
+      if (deleteDays == 0) return;
+
+      final now = DateTime.now();
+      final keysToDelete = <dynamic>[];
+
+      for (final key in box.keys) {
+        final element = box.get(key);
+        if (element is Map) {
+          // Never delete favorites
+          final isFavorite = element['favorite'] == true;
+          if (isFavorite) continue;
+
+          final dateStr = element['datetime']?.toString();
+          if (dateStr != null) {
+            final createdDate = DateTime.tryParse(dateStr);
+            if (createdDate != null) {
+              final daysDifference = now.difference(createdDate).inDays;
+              if (daysDifference >= deleteDays) {
+                keysToDelete.add(key);
+              }
+            }
+          }
+        }
+      }
+
+      if (keysToDelete.isNotEmpty) {
+        await box.deleteAll(keysToDelete);
+      }
+    }
+
+    // Prune history when retention policy changes or on demand
+    on<OnPruneHistoryExpired>((event, emit) async {
+      await pruneExpiredRecords(event.deleteDays);
+      emit(state.copyWith(box.values.toList()));
+    });
 
     on<OnAddHistoryClicked>((event, emit) async {
       if (event.barcode.barcodes.isEmpty) return;
+
+      // Check if saving history is enabled in settings
+      final bool saveHistory =
+          settingsBox.get('saveHistory', defaultValue: true) as bool;
+      if (!saveHistory) return;
 
       final first = event.barcode.barcodes.first;
       final payload = first.rawValue ?? first.displayValue ?? '';
@@ -29,6 +77,10 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
       );
 
       await box.put(id, scannedModel.toJson());
+
+      // Periodically clean up expired records on each new scan
+      await pruneExpiredRecords();
+
       emit(state.copyWith(box.values.toList()));
     });
 
@@ -44,7 +96,6 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
       emit(state.copyWith(box.values.toList()));
     });
 
-    // Toggle favorite or auto-insert if record was not yet written to Hive
     on<OnFavoriteToggleClicked>((event, emit) async {
       final id = event.model?.id ?? event.id;
       if (id.isEmpty) return;
@@ -58,7 +109,6 @@ class HistoryBloc extends Bloc<HistoryEvent, HistoryState> {
 
         await box.put(id, updatedModel.toJson());
       } else if (event.model != null) {
-        // Record was not in Hive yet (e.g., live scan with save history off)
         final newModel = event.model!.copyWith(
           id: id,
           favorite: !(event.model!.favorite ?? false),

@@ -1,4 +1,5 @@
 import 'dart:io';
+
 import 'package:bloc/bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:gal/gal.dart';
@@ -141,29 +142,47 @@ class ScannedResultBloc extends Bloc<ScannedResultEvent, ScannedResultState> {
       }
     });
 
-    // Shares text or rendered QR code image
+    // Shares text or rendered QR code image via SharePlus
     on<OnShareClick>((event, emit) async {
       try {
         if (event.shareImage) {
           final imageBytes = await state.screenshotController?.capture();
+
           if (imageBytes != null) {
-            await Share.shareXFiles(
-              [
-                XFile.fromData(
-                  imageBytes,
+            final tempDir = await getTemporaryDirectory();
+            final filePath =
+                '${tempDir.path}/ScanMaster_Share_${DateTime.now().millisecondsSinceEpoch}.png';
+            final file = File(filePath);
+            await file.writeAsBytes(imageBytes);
+
+            final params = ShareParams(
+              text: event.value,
+              subject: 'Scanned Code',
+              files: [
+                XFile(
+                  file.path,
                   mimeType: 'image/png',
-                  name:
-                      'ScanMaster_${DateTime.now().millisecondsSinceEpoch}.png',
+                  name: 'ScanMaster_Code.png',
                 ),
               ],
+            );
+
+            await SharePlus.instance.share(params);
+          } else {
+            final params = ShareParams(
               text: event.value,
               subject: 'Scanned Code',
             );
-          } else {
-            await Share.share(event.value);
+
+            await SharePlus.instance.share(params);
           }
         } else {
-          await Share.share(event.value);
+          final params = ShareParams(
+            text: event.value,
+            subject: 'Scanned Code',
+          );
+
+          await SharePlus.instance.share(params);
         }
       } catch (e) {
         emit(state.copyWith(

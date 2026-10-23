@@ -49,7 +49,7 @@ class _AboutScreenState extends State<AboutScreen> {
       await inAppReview.requestReview();
     } else {
       await inAppReview.openStoreListing(
-        appStoreId: 'com.android.scanmaster',
+        appStoreId: 'com.scanmaster.app',
       );
     }
   }

@@ -28,3 +28,8 @@ final class OnFavoriteToggleClicked extends HistoryEvent {
 final class OnUnfavoriteAllClicked extends HistoryEvent {
   const OnUnfavoriteAllClicked();
 }
+
+final class OnPruneHistoryExpired extends HistoryEvent {
+  final int? deleteDays;
+  const OnPruneHistoryExpired({this.deleteDays});
+}
