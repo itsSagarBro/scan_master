@@ -15,7 +15,7 @@ barcode_widget.Barcode getQrType(BarcodeFormat format) {
     BarcodeFormat.dataMatrix => barcode_widget.Barcode.dataMatrix(),
     BarcodeFormat.ean13 => barcode_widget.Barcode.ean13(),
     BarcodeFormat.ean8 => barcode_widget.Barcode.ean8(),
-    BarcodeFormat.itf => barcode_widget.Barcode.itf(),
+    BarcodeFormat.itf14 => barcode_widget.Barcode.itf(),
     BarcodeFormat.pdf417 => barcode_widget.Barcode.pdf417(),
     BarcodeFormat.upcA => barcode_widget.Barcode.upcA(),
     BarcodeFormat.upcE => barcode_widget.Barcode.upcE(),

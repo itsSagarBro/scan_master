@@ -140,7 +140,12 @@ class FavoritesScreen extends StatelessWidget {
                 title: 'Share Payload',
                 onTap: () {
                   Navigator.pop(bottomSheetContext);
-                  Share.share(payload);
+                  SharePlus.instance.share(
+                    ShareParams(
+                      text: payload,
+                      subject: 'Scanned Code',
+                    ),
+                  );
                 },
               ),
               _buildBottomSheetAction(

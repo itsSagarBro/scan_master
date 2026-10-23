@@ -149,7 +149,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 title: 'Share Payload',
                 onTap: () {
                   Navigator.pop(bottomSheetContext);
-                  Share.share(payload);
+                  SharePlus.instance.share(
+                    ShareParams(
+                      text: payload,
+                      subject: 'Scanned Code',
+                    ),
+                  );
                 },
               ),
               _buildBottomSheetAction(

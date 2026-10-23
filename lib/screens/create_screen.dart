@@ -201,17 +201,32 @@ class _CreateScreenContentState extends State<_CreateScreenContent> {
       HapticFeedback.mediumImpact();
       final imageBytes = await _screenshotController.capture();
       if (imageBytes != null) {
-        await Share.shareXFiles(
-          [
-            XFile.fromData(
-              imageBytes,
+        final tempDir = await getTemporaryDirectory();
+        final filePath =
+            '${tempDir.path}/ScanMaster_Generated_${DateTime.now().millisecondsSinceEpoch}.png';
+        final file = File(filePath);
+        await file.writeAsBytes(imageBytes);
+
+        final params = ShareParams(
+          text: data,
+          subject: 'Generated Code',
+          files: [
+            XFile(
+              file.path,
               mimeType: 'image/png',
-              name:
-                  'ScanMaster_Generated_${DateTime.now().millisecondsSinceEpoch}.png',
+              name: 'ScanMaster_Generated_Code.png',
             ),
           ],
-          text: data,
         );
+
+        await SharePlus.instance.share(params);
+      } else {
+        final params = ShareParams(
+          text: data,
+          subject: 'Generated Code',
+        );
+
+        await SharePlus.instance.share(params);
       }
     } catch (e) {
       if (!mounted) return;
@@ -722,7 +737,6 @@ class _CreateScreenContentState extends State<_CreateScreenContent> {
     );
   }
 
-  // Refined Format Category Pill with tactile elevation and dynamic coloring
   Widget _formatCategoryPill(
     CodeCategory category,
     IconData icon,
@@ -957,7 +971,6 @@ class _CreateScreenContentState extends State<_CreateScreenContent> {
       );
     }
 
-    // Embed and style center logo with dynamic clipping
     ImageProvider? logoProvider;
     if (state.logoType == LogoType.appDefault) {
       logoProvider = const AssetImage('assets/play_store_512.png');
