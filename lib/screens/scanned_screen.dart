@@ -14,8 +14,6 @@ import 'package:scan_master/utils/get_scanned_values.dart';
 import 'package:scan_master/utils/text_styles.dart';
 import 'package:screenshot/screenshot.dart';
 
-/// displays detailed information for a scanned code, renders its visual barcode preview,
-/// and provides utility actions such as copy, download, share, and auto-actions.
 class ScannedScreen extends StatefulWidget {
   const ScannedScreen({super.key});
 
@@ -29,15 +27,63 @@ class _ScannedScreenState extends State<ScannedScreen> {
   @override
   void initState() {
     super.initState();
-
-    // execute automated settings actions once after the first frame renders
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _executeInitialAutoActions();
     });
   }
 
-  /// evaluates user preferences such as auto-copy, auto-open url, and auto-download
-  /// only when the record is freshly scanned rather than revisited from history
+  /// Extracts the effective string payload from any available field
+  String _resolveRawPayload(ScannedModel model) {
+    if (model.rawValue != null && model.rawValue!.trim().isNotEmpty) {
+      return model.rawValue!.trim();
+    }
+    if (model.name != null &&
+        model.name!.trim().isNotEmpty &&
+        model.name != 'Barcode' &&
+        model.name != 'Unknown') {
+      return model.name!.trim();
+    }
+
+    final rawData = model.raw;
+    if (rawData is List && rawData.isNotEmpty) {
+      final first = rawData.first;
+      if (first is Map) {
+        final val = first['rawValue'] ??
+            first['displayValue'] ??
+            first['formattedValue'] ??
+            first['value'];
+        if (val != null && val.toString().trim().isNotEmpty) {
+          return val.toString().trim();
+        }
+      }
+    }
+    return '';
+  }
+
+  /// Resolves the Barcode instance prioritizing typed fields, fallback string, or legacy maps
+  Barcode? _extractBarcode(ScannedModel model) {
+    final payload = _resolveRawPayload(model);
+    if (payload.isNotEmpty) {
+      return Barcode(
+        rawValue: payload,
+        displayValue: model.name ?? payload,
+        format: model.format ?? BarcodeFormat.qrCode,
+        type: model.type ?? BarcodeType.text,
+      );
+    }
+
+    final rawData = model.raw;
+    if (rawData is List && rawData.isNotEmpty && rawData.first is Map) {
+      try {
+        return Barcode.fromNative(
+            Map<Object?, Object?>.from(rawData.first as Map));
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
+
   void _executeInitialAutoActions() {
     if (!mounted || _hasExecutedAutoActions) return;
 
@@ -46,11 +92,11 @@ class _ScannedScreenState extends State<ScannedScreen> {
     final historyBloc = context.read<HistoryBloc>();
     final scannedModel = scannedBloc.state.scannedModel;
 
-    final rawList = scannedModel.raw as List;
-    final barcode = Barcode.fromNative(rawList.first as Map);
+    final barcode = _extractBarcode(scannedModel);
+    if (barcode == null) return;
+
     final displayText = getDisplayValue(barcode);
 
-    // check if item already existed in history; if null, it is an active new scan
     final isNewScan = scannedModel.id == null ||
         historyBloc.state.getOneData(scannedModel.id!) == null;
 
@@ -62,219 +108,329 @@ class _ScannedScreenState extends State<ScannedScreen> {
       }
 
       if (settingsBloc.qrAutoDownload) {
-        scannedBloc.add(DownloadQrCodeImage());
+        scannedBloc.add(const DownloadQrCodeImage());
       }
     }
 
     _hasExecutedAutoActions = true;
   }
 
+  Widget _buildBarcodePreview({
+    required ScreenshotController screenshotController,
+    required String rawData,
+    required BarcodeFormat format,
+  }) {
+    final cleanData = rawData.trim();
+    if (cleanData.isEmpty) {
+      return const SizedBox(
+        height: 180,
+        width: 180,
+        child: Center(
+          child: Icon(Icons.qr_code_2, size: 80, color: Colors.grey),
+        ),
+      );
+    }
+
+    final isQr = format == BarcodeFormat.qrCode;
+    final targetBarcode = getQrType(format);
+
+    bool canEncode = false;
+    try {
+      targetBarcode.verify(cleanData);
+      canEncode = true;
+    } catch (_) {
+      canEncode = false;
+    }
+
+    final finalBarcode =
+        canEncode ? targetBarcode : barcode_widget.Barcode.qrCode();
+    final showAsQr = !canEncode || isQr;
+
+    return Screenshot(
+      controller: screenshotController,
+      child: Container(
+        color: Colors.white,
+        padding: const EdgeInsets.all(12),
+        width: showAsQr ? 200 : 250,
+        height: showAsQr ? 200 : 100,
+        alignment: Alignment.center,
+        child: barcode_widget.BarcodeWidget(
+          barcode: finalBarcode,
+          data: cleanData,
+          backgroundColor: Colors.white,
+          color: Colors.black,
+          width: showAsQr ? 180 : 230,
+          height: showAsQr ? 180 : 76,
+          drawText: !showAsQr,
+          errorBuilder: (context, error) {
+            return barcode_widget.BarcodeWidget(
+              barcode: barcode_widget.Barcode.qrCode(),
+              data: cleanData,
+              backgroundColor: Colors.white,
+              color: Colors.black,
+              width: 180,
+              height: 180,
+              drawText: false,
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return BlocBuilder<ScannedResultBloc, ScannedResultState>(
-      builder: (context, state) {
-        final rawList = state.scannedModel.raw as List;
-        final barcode = Barcode.fromNative(rawList.first as Map);
-        final displayText = getDisplayValue(barcode);
-
-        return Scaffold(
-          appBar: AppBar(
-            centerTitle: true,
-            title: Text(
-              'Scanned Result',
-              style: appBarHeading(),
-            ),
-            actions: [
-              BlocBuilder<HistoryBloc, HistoryState>(
-                builder: (context, historyState) {
-                  final data = historyState.getRecentData();
-                  final recentModel =
-                      data != null ? ScannedModel.fromJson(data) : null;
-                  final isFavorite = recentModel?.favorite ?? false;
-                  final recordId = recentModel?.id;
-
-                  return PopupMenuButton<String>(
-                    onSelected: (value) {
-                      if (value == 'favorite' && recordId != null) {
-                        context
-                            .read<HistoryBloc>()
-                            .add(OnFavoriteToggleClicked(recordId));
-                      } else if (value == 'settings') {
-                        context.push('/settings');
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      PopupMenuItem<String>(
-                        value: 'favorite',
-                        child: Text(
-                          isFavorite
-                              ? 'Mark as Unfavorite'
-                              : 'Mark as Favorite',
-                          style: defaultTextStyle(fontSize: 14),
-                        ),
-                      ),
-                      PopupMenuItem<String>(
-                        value: 'settings',
-                        child: Text(
-                          'Settings',
-                          style: defaultTextStyle(fontSize: 14),
-                        ),
-                      ),
-                    ],
-                    position: PopupMenuPosition.under,
-                    enableFeedback: true,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(15),
-                    ),
-                  );
-                },
+    return BlocListener<ScannedResultBloc, ScannedResultState>(
+      listenWhen: (prev, current) =>
+          current.message != null && prev.message != current.message,
+      listener: (context, state) {
+        if (state.message != null) {
+          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message!),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 2),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
               ),
-            ],
-          ),
-          body: SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // visual barcode reproduction
-                  SizedBox(
-                    height: 220,
-                    width: barcode.format == BarcodeFormat.qrCode
-                        ? 220
-                        : double.maxFinite,
-                    child: Center(
-                      child: state.screenshotController != null
-                          ? Screenshot(
-                              controller: state.screenshotController!,
-                              child: barcode_widget.BarcodeWidget(
-                                backgroundColor: Colors.white,
-                                padding: const EdgeInsets.all(10),
-                                data: barcode.rawValue ?? '',
-                                barcode: getQrType(barcode.format),
-                                drawText: false,
-                              ),
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                  ),
-                  if (theme.colorScheme.brightness == Brightness.dark)
-                    const SizedBox(height: 10),
-                  AutoSizeText(
-                    displayText,
-                    minFontSize: 14,
-                    maxLines: 5,
-                    wrapWords: false,
-                    textAlign: TextAlign.center,
-                    overflow: TextOverflow.ellipsis,
-                    style: defaultTextStyle(),
-                  ),
-                  const SizedBox(height: 20),
-                  // primary dynamic action button
-                  SizedBox(
-                    width: 250,
-                    height: 70,
-                    child: ElevatedButton(
-                      onPressed: () => context
-                          .read<ScannedResultBloc>()
-                          .add(OnActionClick(barcode)),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: theme.colorScheme.secondaryContainer,
-                        foregroundColor: theme.colorScheme.onSecondaryContainer,
+              backgroundColor: state.actionStatus == ActionStatus.failure
+                  ? theme.colorScheme.error
+                  : theme.colorScheme.inverseSurface,
+            ),
+          );
+        }
+      },
+      child: BlocBuilder<ScannedResultBloc, ScannedResultState>(
+        builder: (context, state) {
+          final barcode = _extractBarcode(state.scannedModel);
+          final rawPayload = _resolveRawPayload(state.scannedModel);
+          final displayText = barcode != null
+              ? getDisplayValue(barcode)
+              : (rawPayload.isNotEmpty ? rawPayload : 'No data found');
+          final currentId = state.scannedModel.id;
+
+          return Scaffold(
+            appBar: AppBar(
+              centerTitle: true,
+              title: Text('Scanned Result', style: appBarHeading()),
+              actions: [
+                BlocBuilder<HistoryBloc, HistoryState>(
+                  builder: (context, historyState) {
+                    final currentRecord = currentId != null
+                        ? historyState.getOneData(currentId)
+                        : null;
+                    final currentModel = currentRecord != null
+                        ? ScannedModel.fromJson(currentRecord as Map)
+                        : state.scannedModel;
+                    final isFavorite = currentModel.favorite ?? false;
+
+                    return IconButton(
+                      tooltip: isFavorite ? 'Remove Favorite' : 'Save Favorite',
+                      icon: Icon(
+                        isFavorite
+                            ? Icons.star_rounded
+                            : Icons.star_outline_rounded,
+                        color: isFavorite ? Colors.amber : null,
                       ),
-                      child: Text(
-                        getButtonText(barcode),
-                        style: qrOpenButtonTextStyle(),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: 200,
-                    child: Row(
-                      children: [
-                        const Expanded(
-                          child: Divider(endIndent: 10),
+                      onPressed: () {
+                        if (currentId != null) {
+                          context
+                              .read<HistoryBloc>()
+                              .add(OnFavoriteToggleClicked(currentId));
+                        }
+                      },
+                    );
+                  },
+                ),
+                IconButton(
+                  tooltip: 'Settings',
+                  icon: const Icon(Icons.settings_outlined),
+                  onPressed: () => context.push('/settings'),
+                ),
+                const SizedBox(width: 4),
+              ],
+            ),
+            body: SafeArea(
+              child: SingleChildScrollView(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const SizedBox(height: 8),
+
+                    // Barcode / QR Preview Card
+                    Center(
+                      child: Material(
+                        elevation: 2,
+                        shadowColor:
+                            theme.colorScheme.shadow.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        color: Colors.white,
+                        child: Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: state.screenshotController != null
+                              ? _buildBarcodePreview(
+                                  screenshotController:
+                                      state.screenshotController!,
+                                  rawData: rawPayload,
+                                  format: barcode?.format ??
+                                      state.scannedModel.format ??
+                                      BarcodeFormat.qrCode,
+                                )
+                              : const SizedBox(
+                                  height: 180,
+                                  width: 180,
+                                  child: Center(
+                                    child: Icon(Icons.qr_code_2,
+                                        size: 80, color: Colors.grey),
+                                  ),
+                                ),
                         ),
-                        Text(
-                          'or',
-                          style: defaultTextStyle(
-                            color: theme.colorScheme.secondary,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // Payload Content Card
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.surfaceContainerHighest
+                            .withValues(alpha: 0.5),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: theme.colorScheme.outlineVariant
+                              .withValues(alpha: 0.4),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (barcode != null)
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.info_outline,
+                                  size: 16,
+                                  color: theme.colorScheme.primary,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  barcode.format.name.toUpperCase(),
+                                  style: defaultTextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: theme.colorScheme.primary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          const SizedBox(height: 8),
+                          AutoSizeText(
+                            displayText,
+                            minFontSize: 14,
+                            maxLines: 8,
+                            style: defaultTextStyle(fontSize: 15),
                           ),
-                        ),
-                        const Expanded(
-                          child: Divider(indent: 10),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  // utility action buttons
-                  SizedBox(
-                    height: 80,
-                    width: double.maxFinite,
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        IconButton.filledTonal(
+                    const SizedBox(height: 24),
+
+                    // Primary Contextual Action Button
+                    if (barcode != null)
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: FilledButton.icon(
                           onPressed: () => context
                               .read<ScannedResultBloc>()
-                              .add(OnCopyClick(displayText)),
-                          icon: const Icon(Icons.copy_rounded),
-                          iconSize: 28,
-                          tooltip: 'Copy Text',
-                          enableFeedback: true,
-                          style: IconButton.styleFrom(
-                            fixedSize: const Size(60, 60),
+                              .add(OnActionClick(barcode)),
+                          icon: const Icon(Icons.open_in_new_rounded),
+                          label: Text(
+                            getButtonText(barcode),
+                            style: defaultTextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
                           ),
                         ),
-                        const SizedBox(width: 15),
-                        IconButton.filledTonal(
-                          onPressed: () =>
-                              context.read<ScannedResultBloc>().add(
-                                    OnDownloadClick(
-                                      barcode.displayValue ?? 'Unknown',
-                                    ),
-                                  ),
-                          icon: const Icon(Icons.download_rounded),
-                          iconSize: 28,
-                          tooltip: 'Download QR',
-                          enableFeedback: true,
-                          style: IconButton.styleFrom(
-                            fixedSize: const Size(60, 60),
+                      ),
+                    const SizedBox(height: 20),
+
+                    // Secondary Action Buttons Row
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 48),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () => context
+                                .read<ScannedResultBloc>()
+                                .add(OnCopyClick(displayText)),
+                            icon: const Icon(Icons.copy_rounded, size: 20),
+                            label: const Text('Copy'),
                           ),
                         ),
-                        const SizedBox(width: 15),
-                        IconButton.filledTonal(
-                          onPressed: () =>
-                              context.read<ScannedResultBloc>().add(
-                                    OnShareClick(
-                                      value: displayText,
-                                      shareImage: context
-                                          .read<SettingsBloc>()
-                                          .shareQrImage,
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 48),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () =>
+                                context.read<ScannedResultBloc>().add(
+                                      OnDownloadClick(
+                                        barcode?.displayValue ?? 'Barcode',
+                                      ),
                                     ),
-                                  ),
-                          icon: const Icon(Icons.share_rounded),
-                          iconSize: 28,
-                          tooltip: 'Share Text',
-                          enableFeedback: true,
-                          style: IconButton.styleFrom(
-                            fixedSize: const Size(60, 60),
+                            icon: const Icon(Icons.download_rounded, size: 20),
+                            label: const Text('Save'),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: OutlinedButton.icon(
+                            style: OutlinedButton.styleFrom(
+                              minimumSize: const Size(0, 48),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                            ),
+                            onPressed: () =>
+                                context.read<ScannedResultBloc>().add(
+                                      OnShareClick(
+                                        value: displayText,
+                                        shareImage: context
+                                            .read<SettingsBloc>()
+                                            .shareQrImage,
+                                      ),
+                                    ),
+                            icon: const Icon(Icons.share_rounded, size: 20),
+                            label: const Text('Share'),
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 16),
+                  ],
+                ),
               ),
             ),
-          ),
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }

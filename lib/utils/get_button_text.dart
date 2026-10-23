@@ -1,18 +1,23 @@
 import 'package:mobile_scanner/mobile_scanner.dart';
 
-/// returns the contextual action button label based on the detected [Barcode.type].
-///
-/// maps known payload types like urls, contacts, or wi-fi credentials to their
-/// respective call-to-action labels, defaulting to "Web Search" for generic raw values.
+/// Returns the contextual action button label based on detected [Barcode].
 String getButtonText(Barcode barcode) {
+  final raw =
+      (barcode.rawValue ?? barcode.displayValue ?? '').toLowerCase().trim();
+
+  // Check if payload is a UPI payment link
+  if (raw.startsWith('upi://pay') || raw.startsWith('upi:')) {
+    return 'Pay via UPI';
+  }
+
   return switch (barcode.type) {
     BarcodeType.email => 'Send Email',
     BarcodeType.contactInfo => 'Save Contact',
     BarcodeType.sms => 'Send SMS',
     BarcodeType.phone => 'Call Now',
     BarcodeType.wifi => 'Connect Now',
-    BarcodeType.url => 'Open in browser',
-    BarcodeType.geo => 'Open in map',
+    BarcodeType.url => 'Open in Browser',
+    BarcodeType.geo => 'Open in Maps',
     _ => 'Web Search',
   };
 }

@@ -1,9 +1,8 @@
 name: scan_master
 description: A feature-rich barcode and QR code scanner and generator app built with Flutter.
 version: 1.0.0+1
-publish_to: "none" # set to none to prevent accidental publication to pub.dev
+publish_to: "none"
 
-# Open source repository metadata
 homepage: https://github.com/itsSagarBro/scan_master
 repository: https://github.com/itsSagarBro/scan_master
 issue_tracker: https://github.com/itsSagarBro/scan_master/issues
@@ -29,6 +28,7 @@ dependencies:
   # Scanning & Barcodes
   mobile_scanner: ^7.4.2
   barcode_widget: ^2.0.4
+  pretty_qr_code: ^3.3.0
 
   # Local Storage
   hive_flutter: ^1.1.0
@@ -38,9 +38,8 @@ dependencies:
   share_plus: ^13.3.1
   wifi_iot: ^0.4.0
   screenshot: ^3.0.0
-  fluttertoast: ^10.0.2
-  image_gallery_saver_plus: ^5.1.1
-  launch_review_latest: ^1.0.0
+  gal: ^2.3.0
+  in_app_review: ^2.0.9
 
   # Utilities
   logger: ^2.0.2+1

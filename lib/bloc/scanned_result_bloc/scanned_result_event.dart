@@ -1,32 +1,34 @@
 part of 'scanned_result_bloc.dart';
 
-abstract class ScannedResultEvent {}
-
-class DownloadQrCodeImage extends ScannedResultEvent {}
-
-class OnActionClick extends ScannedResultEvent {
-  Barcode barcode;
-
-  OnActionClick(this.barcode);
+sealed class ScannedResultEvent {
+  const ScannedResultEvent();
 }
 
-class OnCopyClick extends ScannedResultEvent {
-  String value;
-
-  OnCopyClick(this.value);
+final class DownloadQrCodeImage extends ScannedResultEvent {
+  const DownloadQrCodeImage();
 }
 
-class OnDownloadClick extends ScannedResultEvent {
-  String name;
-
-  OnDownloadClick(this.name);
+final class OnActionClick extends ScannedResultEvent {
+  final Barcode barcode;
+  const OnActionClick(this.barcode);
 }
 
-class OnShareClick extends ScannedResultEvent {
-  String value;
-  bool shareImage;
-
-  OnShareClick({required this.value, required this.shareImage});
+final class OnCopyClick extends ScannedResultEvent {
+  final String value;
+  const OnCopyClick(this.value);
 }
 
-class OnFavortieToggleClick extends ScannedResultEvent {}
+final class OnDownloadClick extends ScannedResultEvent {
+  final String name;
+  const OnDownloadClick(this.name);
+}
+
+final class OnShareClick extends ScannedResultEvent {
+  final String value;
+  final bool shareImage;
+
+  const OnShareClick({
+    required this.value,
+    required this.shareImage,
+  });
+}

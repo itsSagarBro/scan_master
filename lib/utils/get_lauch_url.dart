@@ -1,99 +1,59 @@
 import 'package:mobile_scanner/mobile_scanner.dart';
 
 String getLaunchUrl(Barcode barcode) {
-  String url = "";
+  final raw = (barcode.rawValue ?? barcode.displayValue ?? '').trim();
+
+  // If already a UPI or standard scheme URI, return directly
+  if (raw.toLowerCase().startsWith('upi://') ||
+      raw.toLowerCase().startsWith('upi:')) {
+    return raw;
+  }
+
   switch (barcode.type) {
     case BarcodeType.email:
-      url = _getLaunchFromEmail(barcode);
-      break;
+      return _getLaunchFromEmail(barcode);
     case BarcodeType.contactInfo:
-      url = _getTextFromPhone(barcode);
-      break;
+      return _getTextFromPhone(barcode);
     case BarcodeType.sms:
-      url = _getLaunchFromSms(barcode);
-      break;
+      return _getLaunchFromSms(barcode);
     case BarcodeType.phone:
-      url = _getTextFromPhone(barcode);
-      break;
+      return _getTextFromPhone(barcode);
     case BarcodeType.wifi:
-      url = _getTextFromWifi(barcode);
-      break;
+      return _getTextFromWifi(barcode);
     default:
-      url = barcode.url?.url ??
-          "https://www.google.com/search?q=${barcode.displayValue}";
-      break;
+      if (raw.startsWith('http://') || raw.startsWith('https://')) {
+        return raw;
+      }
+      return 'https://www.google.com/search?q=${Uri.encodeComponent(raw)}';
   }
-  return url;
 }
 
 String _getLaunchFromEmail(Barcode barcode) {
-  String url = "";
-
   if (barcode.email != null) {
-    url = "mailto:${barcode.email!.address}";
-
-    if (barcode.email?.subject != null) {
-      url += "?subject=${barcode.email?.subject}";
-    }
-
-    if (barcode.email?.body != null) {
-      url += "&body=${barcode.email?.body}";
-    }
+    final addr = barcode.email!.address ?? '';
+    final subject = barcode.email?.subject != null
+        ? '?subject=${barcode.email!.subject}'
+        : '';
+    return 'mailto:$addr$subject';
   }
-
-  return url;
+  return '';
 }
 
 String _getLaunchFromSms(Barcode barcode) {
-  String text = "";
-
   if (barcode.sms != null) {
-    text = "sms:${barcode.sms!.phoneNumber}";
-
-    if (barcode.sms?.message != null) {
-      text += "?body=${barcode.sms?.message}";
-    }
+    return 'sms:${barcode.sms!.phoneNumber}';
   }
-
-  return text;
+  return '';
 }
 
 String _getTextFromPhone(Barcode barcode) {
-  return "tel:${barcode.contactInfo?.phones[0].number.toString()}";
-}
-
-String _getTextFromWifi(Barcode barcode) {
-  String text = "";
-
-  if (barcode.wifi != null) {
-    text = "SSID: ${barcode.wifi!.ssid}";
-
-    if (barcode.wifi?.password != null) {
-      text += "\nPassword: ${barcode.wifi?.password}";
-    }
-
-    if (barcode.wifi?.encryptionType != null) {
-      String type = "";
-
-      switch (barcode.wifi?.encryptionType) {
-        case EncryptionType.unknown:
-          type = "NONE";
-          break;
-        case EncryptionType.wep:
-          type = "WEP";
-          break;
-        case EncryptionType.wpa:
-          type = "WPA";
-          break;
-        case EncryptionType.open:
-          type = "OPEN";
-          break;
-        default:
-      }
-
-      text += "\nType: $type";
-    }
+  if (barcode.phone != null) {
+    return 'tel:${barcode.phone!.number}';
   }
-
-  return text;
+  if (barcode.contactInfo?.phones.isNotEmpty ?? false) {
+    return 'tel:${barcode.contactInfo!.phones.first.number}';
+  }
+  return '';
 }
+
+String _getTextFromWifi(Barcode barcode) => '';
