@@ -13,6 +13,7 @@ import 'package:scan_master/models/history_model.dart';
 import 'package:scan_master/utils/get_button_text.dart';
 import 'package:scan_master/utils/get_qr_type.dart';
 import 'package:scan_master/utils/get_scanned_values.dart';
+import 'package:scan_master/utils/resolve_barcode_type.dart';
 import 'package:scan_master/utils/text_styles.dart';
 import 'package:screenshot/screenshot.dart';
 
@@ -56,6 +57,8 @@ class _ScannedScreenState extends State<ScannedScreen> {
         if (val != null && val.toString().trim().isNotEmpty) {
           return val.toString().trim();
         }
+      } else if (first is String && first.trim().isNotEmpty) {
+        return first.trim();
       }
     }
     return '';
@@ -63,25 +66,71 @@ class _ScannedScreenState extends State<ScannedScreen> {
 
   Barcode? _extractBarcode(ScannedModel model) {
     final payload = _resolveRawPayload(model);
-    if (payload.isNotEmpty) {
-      return Barcode(
-        rawValue: payload,
-        displayValue: model.name ?? payload,
-        format: model.format ?? BarcodeFormat.qrCode,
-        type: model.type ?? BarcodeType.text,
-      );
-    }
 
+    Barcode? originalBarcode;
     final rawData = model.raw;
     if (rawData is List && rawData.isNotEmpty && rawData.first is Map) {
       try {
-        return Barcode.fromNative(
-            Map<Object?, Object?>.from(rawData.first as Map));
-      } catch (_) {
-        return null;
-      }
+        originalBarcode = Barcode.fromNative(
+          Map<Object?, Object?>.from(rawData.first as Map),
+        );
+      } catch (_) {}
+    } else if (rawData is Barcode) {
+      originalBarcode = rawData;
     }
-    return null;
+
+    if (payload.isNotEmpty) {
+      final resolvedType = resolveBarcodeType(
+        payload,
+        originalBarcode?.type ?? model.type,
+      );
+
+      WiFi? wifiData = originalBarcode?.wifi;
+      if (resolvedType == BarcodeType.wifi && wifiData == null) {
+        wifiData = _parseWifiString(payload);
+      }
+
+      return Barcode(
+        rawValue: payload,
+        displayValue: model.name ?? payload,
+        format: originalBarcode?.format ?? model.format ?? BarcodeFormat.qrCode,
+        type: resolvedType,
+        wifi: wifiData,
+        url: (resolvedType == BarcodeType.url)
+            ? (originalBarcode?.url ?? UrlBookmark(url: payload, title: ''))
+            : null,
+      );
+    }
+
+    return originalBarcode;
+  }
+
+  WiFi? _parseWifiString(String raw) {
+    try {
+      final clean = raw.trim();
+      final ssidMatch = RegExp(r'S:(.*?)(?:;|$)').firstMatch(clean);
+      final passMatch = RegExp(r'P:(.*?)(?:;|$)').firstMatch(clean);
+      final typeMatch = RegExp(r'T:(.*?)(?:;|$)').firstMatch(clean);
+
+      final ssid = ssidMatch?.group(1) ?? '';
+      final password = passMatch?.group(1) ?? '';
+      final typeStr = (typeMatch?.group(1) ?? 'WPA').toUpperCase();
+
+      EncryptionType enc = EncryptionType.wpa;
+      if (typeStr == 'WEP') {
+        enc = EncryptionType.wep;
+      } else if (typeStr == 'NOPASS' || typeStr.isEmpty) {
+        enc = EncryptionType.open;
+      }
+
+      return WiFi(
+        ssid: ssid,
+        password: password,
+        encryptionType: enc,
+      );
+    } catch (_) {
+      return null;
+    }
   }
 
   void _executeInitialAutoActions() {
@@ -239,7 +288,6 @@ class _ScannedScreenState extends State<ScannedScreen> {
           return Scaffold(
             body: Stack(
               children: [
-                // 1. Rich Layered Ambient Mesh Glow
                 Positioned(
                   top: -80,
                   right: -60,
@@ -274,23 +322,18 @@ class _ScannedScreenState extends State<ScannedScreen> {
                     ),
                   ),
                 ),
-
-                // 2. Full-Canvas Subtle Blur Smoothing
                 Positioned.fill(
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
                     child: const SizedBox.expand(),
                   ),
                 ),
-
-                // 3. Scrollable Main Content
                 SafeArea(
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(20, 76, 20, 24),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Barcode Render Hero Card with Frosted Container Frame
                         Center(
                           child: Container(
                             decoration: BoxDecoration(
@@ -335,8 +378,6 @@ class _ScannedScreenState extends State<ScannedScreen> {
                           ),
                         ),
                         const SizedBox(height: 18),
-
-                        // Format & Type Capsule Badges
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -399,8 +440,6 @@ class _ScannedScreenState extends State<ScannedScreen> {
                           ],
                         ),
                         const SizedBox(height: 22),
-
-                        // Scanned Content Card
                         ClipRRect(
                           borderRadius: BorderRadius.circular(24),
                           child: BackdropFilter(
@@ -466,8 +505,6 @@ class _ScannedScreenState extends State<ScannedScreen> {
                           ),
                         ),
                         const SizedBox(height: 24),
-
-                        // Primary Contextual Action Button
                         if (barcode != null) ...[
                           SizedBox(
                             width: double.infinity,
@@ -499,8 +536,6 @@ class _ScannedScreenState extends State<ScannedScreen> {
                           ),
                           const SizedBox(height: 14),
                         ],
-
-                        // Secondary Action Buttons Row
                         Row(
                           children: [
                             Expanded(
@@ -557,8 +592,6 @@ class _ScannedScreenState extends State<ScannedScreen> {
                     ),
                   ),
                 ),
-
-                // 4. Top Frosted Navigation Bar
                 Positioned(
                   top: 0,
                   left: 0,
@@ -668,9 +701,9 @@ class _ScannedScreenState extends State<ScannedScreen> {
         filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
         child: Material(
           color: theme.colorScheme.surface.withValues(alpha: 0.72),
-          shape: CircleBorder(
+          shape: const CircleBorder(
             side: BorderSide(
-              color: Colors.white.withValues(alpha: 0.16),
+              color: Colors.white12,
             ),
           ),
           child: InkWell(

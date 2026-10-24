@@ -9,6 +9,7 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:scan_master/bloc/history_bloc/history_bloc.dart';
 import 'package:scan_master/bloc/qr_scanner_bloc/qr_scanner_bloc.dart';
 import 'package:scan_master/bloc/settings_bloc/settings_bloc.dart';
+import 'package:scan_master/models/history_model.dart';
 import 'package:scan_master/utils/qr_scanner_overlay.dart';
 import 'package:scan_master/utils/text_styles.dart';
 
@@ -86,7 +87,7 @@ class _HomeScreenState extends State<HomeScreen>
 
   Future<void> _pickAndScanFromGallery(
       MobileScannerController? controller) async {
-    if (controller == null) return;
+    if (controller == null || _isNavigating) return;
 
     try {
       final XFile? image = await _picker.pickImage(
@@ -101,18 +102,25 @@ class _HomeScreenState extends State<HomeScreen>
       if (!mounted) return;
 
       if (capture != null && capture.barcodes.isNotEmpty) {
+        final firstBarcode = capture.barcodes.first;
+        final scannedModel = ScannedModel.fromBarcode(
+          firstBarcode,
+          id: DateTime.now().millisecondsSinceEpoch.toString(),
+        );
+
         if (context.read<SettingsBloc>().saveHistory) {
           context.read<HistoryBloc>().add(OnAddHistoryClicked(capture));
         }
-        context.read<QrScannerBloc>().add(OnScannedData(capture));
+        context.read<QrScannerBloc>().add(OnScannedData(scannedModel));
       } else {
         ScaffoldMessenger.of(context).hideCurrentSnackBar();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: const Text('No QR or barcode detected in image'),
             behavior: SnackBarBehavior.floating,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -134,17 +142,36 @@ class _HomeScreenState extends State<HomeScreen>
     final cutoutDimension = size.width * 0.68;
 
     return BlocConsumer<QrScannerBloc, QrScannerState>(
+      listenWhen: (previous, current) => current.data != null,
       listener: (context, state) async {
-        if (state.data != null && !_isNavigating) {
+        final data = state.data;
+        if (data != null && !_isNavigating) {
           _isNavigating = true;
+          _laserController.stop();
           HapticFeedback.selectionClick();
 
           final scannerBloc = context.read<QrScannerBloc>();
-          await context.push('/scanned', extra: state.data);
 
-          if (!mounted) return;
-          _isNavigating = false;
-          scannerBloc.add(OnReturn());
+          dynamic targetPayload = data;
+          if (targetPayload is BarcodeCapture &&
+              targetPayload.barcodes.isNotEmpty) {
+            targetPayload = ScannedModel.fromBarcode(
+              targetPayload.barcodes.first,
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
+            );
+          }
+
+          try {
+            await context.push('/scanned', extra: targetPayload);
+          } finally {
+            if (mounted) {
+              _isNavigating = false;
+              if (!_laserController.isAnimating) {
+                _laserController.repeat(reverse: true);
+              }
+              scannerBloc.add(OnReturn());
+            }
+          }
         }
       },
       builder: (context, state) {
@@ -166,14 +193,21 @@ class _HomeScreenState extends State<HomeScreen>
 
                     final first = barcodes.barcodes.first;
                     final payload = first.rawValue ?? first.displayValue ?? '';
-                    if (payload.isEmpty) return;
+                    if (payload.trim().isEmpty) return;
+
+                    final scannedModel = ScannedModel.fromBarcode(
+                      first,
+                      id: DateTime.now().millisecondsSinceEpoch.toString(),
+                    );
 
                     if (context.read<SettingsBloc>().saveHistory) {
                       context
                           .read<HistoryBloc>()
                           .add(OnAddHistoryClicked(barcodes));
                     }
-                    context.read<QrScannerBloc>().add(OnScannedData(barcodes));
+                    context
+                        .read<QrScannerBloc>()
+                        .add(OnScannedData(scannedModel));
                   },
                   overlayBuilder: (context, _) {
                     return AnimatedBuilder(
@@ -298,7 +332,7 @@ class _HomeScreenState extends State<HomeScreen>
                 ),
               ),
 
-              // 4. Balanced Top Header (Title on Left, Tools & Settings on Right)
+              // 4. Balanced Top Header
               Positioned(
                 top: 0,
                 left: 0,
@@ -313,7 +347,6 @@ class _HomeScreenState extends State<HomeScreen>
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        // Left: Clean Title Capsule
                         ClipRRect(
                           borderRadius: BorderRadius.circular(22),
                           child: BackdropFilter(
@@ -341,8 +374,6 @@ class _HomeScreenState extends State<HomeScreen>
                             ),
                           ),
                         ),
-
-                        // Right: Tool Actions & Settings Capsule
                         ClipRRect(
                           borderRadius: BorderRadius.circular(22),
                           child: BackdropFilter(
@@ -361,15 +392,12 @@ class _HomeScreenState extends State<HomeScreen>
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  // Gallery Scan Button
                                   _buildInnerIconButton(
                                     icon: Icons.photo_library_outlined,
                                     tooltip: 'Scan from gallery',
                                     onTap: () =>
                                         _pickAndScanFromGallery(controller),
                                   ),
-
-                                  // Divider
                                   Container(
                                     width: 1,
                                     height: 18,
@@ -377,8 +405,6 @@ class _HomeScreenState extends State<HomeScreen>
                                         horizontal: 2),
                                     color: Colors.white.withValues(alpha: 0.16),
                                   ),
-
-                                  // Flash Toggle Button
                                   _buildInnerIconButton(
                                     icon: isFlashOn
                                         ? Icons.flash_on_rounded
@@ -391,8 +417,6 @@ class _HomeScreenState extends State<HomeScreen>
                                         .read<QrScannerBloc>()
                                         .add(OnFlashClick()),
                                   ),
-
-                                  // Divider
                                   Container(
                                     width: 1,
                                     height: 18,
@@ -400,28 +424,11 @@ class _HomeScreenState extends State<HomeScreen>
                                         horizontal: 2),
                                     color: Colors.white.withValues(alpha: 0.16),
                                   ),
-
-                                  // Settings Button
                                   _buildInnerIconButton(
                                     icon: Icons.settings_outlined,
                                     tooltip: 'Settings',
                                     onTap: () => _loadScreen('/settings'),
                                   ),
-
-                                  /*
-                                  // Camera flip button preserved for future toggle:
-                                  Container(
-                                    width: 1,
-                                    height: 18,
-                                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                                    color: Colors.white.withValues(alpha: 0.16),
-                                  ),
-                                  _buildInnerIconButton(
-                                    icon: Icons.flip_camera_ios_rounded,
-                                    tooltip: 'Flip camera',
-                                    onTap: () => controller?.switchCamera(),
-                                  ),
-                                  */
                                 ],
                               ),
                             ),
@@ -465,15 +472,12 @@ class _HomeScreenState extends State<HomeScreen>
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          // History Button
                           _buildDockButton(
                             theme: theme,
                             icon: Icons.history_rounded,
                             label: 'History',
                             onTap: () => _loadScreen('/history'),
                           ),
-
-                          // Generate Button
                           FilledButton.icon(
                             style: FilledButton.styleFrom(
                               padding: const EdgeInsets.symmetric(
@@ -496,8 +500,6 @@ class _HomeScreenState extends State<HomeScreen>
                               ),
                             ),
                           ),
-
-                          // Starred Button
                           _buildDockButton(
                             theme: theme,
                             icon: Icons.star_rounded,

@@ -5,13 +5,13 @@ abstract class QrScannerEvent {}
 final class OnFlashClick extends QrScannerEvent {}
 
 final class OnScannedData extends QrScannerEvent {
-  BarcodeCapture data;
+  final dynamic data; // Accepts BarcodeCapture or ScannedModel
 
   OnScannedData(this.data);
 }
 
 final class OnReturn extends QrScannerEvent {
-  bool fromBackground;
+  final bool fromBackground;
 
   OnReturn({this.fromBackground = false});
 }

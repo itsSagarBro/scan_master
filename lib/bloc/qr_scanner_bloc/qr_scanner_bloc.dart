@@ -11,32 +11,43 @@ class QrScannerBloc extends Bloc<QrScannerEvent, QrScannerState> {
     on<OnFlashClick>((event, emit) async {
       flashOn = !flashOn;
       await state.mobileScannerController?.toggleTorch();
-      emit(state.copyWith(flashOn: flashOn, data: null));
+      emit(state.copyWith(flashOn: flashOn, clearData: true));
     });
 
     on<OnScannedData>((event, emit) {
       if (!scanned) {
-        state.mobileScannerController?.stop();
         scanned = true;
-        String id = DateTime.now().millisecondsSinceEpoch.toString();
-        ScannedModel scannedModel = ScannedModel(
-            id: id,
-            name: event.data.barcodes[0].displayValue,
-            datetime: DateTime.now().toString(),
-            favorite: false,
-            raw: event.data.raw);
-        emit(state.copyWith(flashOn: flashOn, data: scannedModel));
+
+        ScannedModel? scannedModel;
+
+        if (event.data is ScannedModel) {
+          scannedModel = event.data as ScannedModel;
+        } else if (event.data is BarcodeCapture) {
+          final capture = event.data as BarcodeCapture;
+          if (capture.barcodes.isNotEmpty) {
+            final first = capture.barcodes.first;
+            scannedModel = ScannedModel.fromBarcode(
+              first,
+              id: DateTime.now().millisecondsSinceEpoch.toString(),
+            );
+          }
+        }
+
+        if (scannedModel != null) {
+          emit(state.copyWith(flashOn: flashOn, data: scannedModel));
+        } else {
+          scanned = false;
+        }
       }
     });
 
     on<OnReturn>((event, emit) async {
+      emit(state.copyWith(flashOn: false, clearData: true));
+
       if (scanned && !event.fromBackground) {
+        await Future.delayed(const Duration(milliseconds: 500));
         scanned = false;
         startScannerController();
-      }
-      if (flashOn) {
-        flashOn = false;
-        emit(state.copyWith(flashOn: flashOn, data: null));
       }
     });
 
@@ -50,8 +61,8 @@ class QrScannerBloc extends Bloc<QrScannerEvent, QrScannerState> {
       scanned = false;
       if (flashOn) {
         flashOn = false;
-        emit(state.copyWith(flashOn: flashOn, data: null));
       }
+      emit(state.copyWith(flashOn: false, clearData: true));
     });
 
     on<OnScanImageFromGallery>((event, emit) async {
@@ -61,26 +72,15 @@ class QrScannerBloc extends Bloc<QrScannerEvent, QrScannerState> {
 
         if (capture != null && capture.barcodes.isNotEmpty) {
           final first = capture.barcodes.first;
-          final payload = first.rawValue ?? first.displayValue ?? '';
+          final scannedModel = ScannedModel.fromBarcode(
+            first,
+            id: DateTime.now().millisecondsSinceEpoch.toString(),
+          );
 
-          if (payload.isNotEmpty) {
-            final id = DateTime.now().millisecondsSinceEpoch.toString();
-            final scannedModel = ScannedModel(
-              id: id,
-              name: first.displayValue ?? payload,
-              datetime: DateTime.now().toIso8601String(),
-              favorite: false,
-              rawValue: payload,
-              format: first.format,
-              type: first.type,
-              raw: capture.raw,
-            );
-
-            emit(state.copyWith(flashOn: flashOn, data: scannedModel));
-          }
+          scanned = true;
+          emit(state.copyWith(flashOn: flashOn, data: scannedModel));
         } else {
-          // Trigger return/reset so UI can notify no QR found
-          emit(state.copyWith(flashOn: flashOn, data: null));
+          emit(state.copyWith(flashOn: flashOn, clearData: true));
         }
       } catch (e) {
         Logger().e('Error scanning from gallery: $e');
