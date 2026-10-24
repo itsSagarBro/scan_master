@@ -4,6 +4,7 @@ import 'package:bloc/bloc.dart';
 import 'package:flutter/services.dart';
 import 'package:gal/gal.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:open_settings_plus/open_settings_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:scan_master/models/history_model.dart';
 import 'package:scan_master/utils/get_lauch_url.dart';
@@ -59,24 +60,17 @@ class ScannedResultBloc extends Bloc<ScannedResultEvent, ScannedResultState> {
           }
 
           // Open Android Wi-Fi settings screen or generic settings fallback
-          final wifiSettingsUri =
-              Uri.parse('package:android.settings.WIFI_SETTINGS');
-          final fallbackSettingsUri =
-              Uri.parse('package:android.settings.SETTINGS');
-
-          bool opened = false;
-          try {
-            if (await canLaunchUrl(wifiSettingsUri)) {
-              opened = await launchUrl(wifiSettingsUri);
-            }
-          } catch (_) {}
-
-          if (!opened) {
-            try {
-              if (await canLaunchUrl(fallbackSettingsUri)) {
-                opened = await launchUrl(fallbackSettingsUri);
-              }
-            } catch (_) {}
+          switch (OpenSettingsPlus.shared) {
+            case OpenSettingsPlusAndroid settings:
+              // Directs the Android user to the Wi-Fi configurations page
+              settings.wifi();
+              break;
+            case OpenSettingsPlusIOS settings:
+              // Directs the iOS user to the Wi-Fi configurations page
+              settings.wifi();
+              break;
+            default:
+              throw Exception('Platform not supported');
           }
 
           if (password.isNotEmpty) {

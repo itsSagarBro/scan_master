@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="shortcut_scan_camera_short">Scan Code</string>
+    <string name="shortcut_scan_camera_long">Scan with Camera</string>
+
+    <string name="shortcut_scan_gallery_short">From Gallery</string>
+    <string name="shortcut_scan_gallery_long">Scan Image from Gallery</string>
+
+    <string name="shortcut_create_qr_short">Create QR</string>
+    <string name="shortcut_create_qr_long">Create QR &amp; Barcode</string>
+</resources>

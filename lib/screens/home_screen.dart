@@ -53,6 +53,15 @@ class _HomeScreenState extends State<HomeScreen>
     _pulseAnimation = Tween<double>(begin: 0.96, end: 1.04).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final uri = GoRouterState.of(context).uri;
+      if (uri.queryParameters['action'] == 'gallery') {
+        final controller =
+            context.read<QrScannerBloc>().state.mobileScannerController;
+        _pickAndScanFromGallery(controller);
+      }
+    });
   }
 
   @override

@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Shortcut 1: Scan with Camera -->
+    <shortcut
+        android:shortcutId="shortcut_scan_camera"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_camera"
+        android:shortcutShortLabel="@string/shortcut_scan_camera_short"
+        android:shortcutLongLabel="@string/shortcut_scan_camera_long">
+        <intent
+            android:action="dev.sagarpatel.scanmaster.ACTION_SCAN_CAMERA"
+            android:targetPackage="dev.sagarpatel.scanmaster"
+            android:targetClass="dev.sagarpatel.scanmaster.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <!-- Shortcut 2: Scan from Gallery -->
+    <shortcut
+        android:shortcutId="shortcut_scan_gallery"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_gallery"
+        android:shortcutShortLabel="@string/shortcut_scan_gallery_short"
+        android:shortcutLongLabel="@string/shortcut_scan_gallery_long">
+        <intent
+            android:action="dev.sagarpatel.scanmaster.ACTION_SCAN_GALLERY"
+            android:targetPackage="dev.sagarpatel.scanmaster"
+            android:targetClass="dev.sagarpatel.scanmaster.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+    <!-- Shortcut 3: Create QR -->
+    <shortcut
+        android:shortcutId="shortcut_create_qr"
+        android:enabled="true"
+        android:icon="@drawable/ic_shortcut_create"
+        android:shortcutShortLabel="@string/shortcut_create_qr_short"
+        android:shortcutLongLabel="@string/shortcut_create_qr_long">
+        <intent
+            android:action="dev.sagarpatel.scanmaster.ACTION_CREATE_QR"
+            android:targetPackage="dev.sagarpatel.scanmaster"
+            android:targetClass="dev.sagarpatel.scanmaster.MainActivity" />
+        <categories android:name="android.shortcut.conversation" />
+    </shortcut>
+
+</shortcuts>

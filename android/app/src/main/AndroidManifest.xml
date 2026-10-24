@@ -39,6 +39,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:launchMode="singleTop"
+            android:screenOrientation="portrait"
             android:theme="@style/LaunchTheme"
             android:configChanges="orientation|keyboardHidden|keyboard|screenSize|smallestScreenSize|locale|layoutDirection|fontScale|screenLayout|density|uiMode"
             android:hardwareAccelerated="true"
@@ -47,6 +48,11 @@
             <meta-data
               android:name="io.flutter.embedding.android.NormalTheme"
               android:resource="@style/NormalTheme" />
+
+            <!-- Launcher App Shortcuts Configuration -->
+            <meta-data
+                android:name="android.app.shortcuts"
+                android:resource="@xml/shortcuts" />
 
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
@@ -62,6 +68,18 @@
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
             android:value="barcode" />
+        
+        <!-- Quick Settings Tile Service -->
+        <service
+            android:name=".ScanTileService"
+            android:label="Scan QR"
+            android:icon="@drawable/ic_qs_scan"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
     </application>
 
     <!-- ==================== Package Visibility Queries ==================== -->
