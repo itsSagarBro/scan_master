@@ -15,6 +15,7 @@ import 'package:scan_master/utils/get_qr_type.dart';
 import 'package:scan_master/utils/get_scanned_values.dart';
 import 'package:scan_master/utils/resolve_barcode_type.dart';
 import 'package:scan_master/utils/text_styles.dart';
+import 'package:scan_master/widgets/url_safety_card.dart';
 import 'package:screenshot/screenshot.dart';
 
 class ScannedScreen extends StatefulWidget {
@@ -285,6 +286,24 @@ class _ScannedScreenState extends State<ScannedScreen> {
                   .name
                   .toUpperCase();
 
+          // 1. Prioritize rawPayload. If using displayText, strip any "URL:" / "Url:" prefix
+          String candidate =
+              rawPayload.isNotEmpty ? rawPayload.trim() : displayText.trim();
+
+          // Strip "URL: " or "Url: " prefixes added by getDisplayValue
+          if (RegExp(r'^url:\s*', caseSensitive: false).hasMatch(candidate)) {
+            candidate = candidate
+                .replaceFirst(RegExp(r'^url:\s*', caseSensitive: false), '')
+                .trim();
+          }
+
+          // 2. Accurate URL detection on the cleaned string
+          final bool isUrlPayload = (barcode?.type == BarcodeType.url) ||
+              candidate.toLowerCase().startsWith('http://') ||
+              candidate.toLowerCase().startsWith('https://') ||
+              RegExp(r'^(?:https?:\/\/)?(?:[a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}(?::\d+)?(?:\/.*)?$')
+                  .hasMatch(candidate);
+
           return Scaffold(
             body: Stack(
               children: [
@@ -490,15 +509,18 @@ class _ScannedScreenState extends State<ScannedScreen> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 10),
-                                  SelectableText(
-                                    displayText,
-                                    style: defaultTextStyle(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                      color: theme.colorScheme.onSurface,
+                                  const SizedBox(height: 12),
+                                  if (isUrlPayload)
+                                    UrlSafetyCard(rawUrl: candidate)
+                                  else
+                                    SelectableText(
+                                      displayText,
+                                      style: defaultTextStyle(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w500,
+                                        color: theme.colorScheme.onSurface,
+                                      ),
                                     ),
-                                  ),
                                 ],
                               ),
                             ),
