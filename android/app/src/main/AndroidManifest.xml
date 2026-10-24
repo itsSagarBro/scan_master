@@ -1,41 +1,40 @@
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
-    <!-- ==================== Permissions ==================== -->
+    <!-- ==================== Minimal Core Permissions ==================== -->
 
-    <!-- Camera (mobile_scanner) -->
+    <!-- Camera: Required for live viewfinder scanning -->
     <uses-permission android:name="android.permission.CAMERA" />
 
-    <!-- Internet & Network -->
+    <!-- Internet: Required for opening web URLs / updating unbundled ML Kit -->
     <uses-permission android:name="android.permission.INTERNET" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" />
 
-    <!-- Wi-Fi Connect Automation (wifi_iot) -->
-    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
-    <!-- Required on Android 10-12 to bind/connect to local Wi-Fi networks -->
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
-    <!-- Required on Android 13+ (API 33+) to connect to Wi-Fi without location tracking -->
-    <uses-permission 
-        android:name="android.permission.NEARBY_WIFI_DEVICES" 
-        android:usesPermissionFlags="neverForLocation" />
-
-    <!-- Gallery Image Saving (gal) - Legacy Android 9 & Below Support -->
+    <!-- Gallery Image Saving (gal) - Scoped to Legacy Android 9 & Below -->
     <uses-permission 
         android:name="android.permission.WRITE_EXTERNAL_STORAGE" 
         android:maxSdkVersion="28" />
 
+    <!-- ==================== Explicit Stripping Safeguards ==================== -->
+    <!-- Prevents any transitively merged libraries from sneaking in tracking permissions -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" tools:node="remove" />
+    <uses-permission android:name="android.permission.NEARBY_WIFI_DEVICES" tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.CHANGE_NETWORK_STATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:node="remove" />
+
     <!-- ==================== Hardware Features ==================== -->
-    <!-- Prevents Play Store from hiding the app on devices without back camera or autofocus -->
+    <!-- Ensures app availability on devices without specialized hardware -->
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-feature android:name="android.hardware.camera.autofocus" android:required="false" />
-    <uses-feature android:name="android.hardware.wifi" android:required="false" />
 
     <!-- ==================== Application Configuration ==================== -->
     <application
         android:label="Scan Master"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
+        
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -58,6 +57,8 @@
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />
+            
+        <!-- Preloads Google Play Services Unbundled ML Kit model -->
         <meta-data
             android:name="com.google.mlkit.vision.DEPENDENCIES"
             android:value="barcode" />
@@ -102,6 +103,11 @@
         <intent>
             <action android:name="android.intent.action.SENDTO" />
             <data android:scheme="smsto" />
+        </intent>
+
+        <!-- Wi-Fi Settings Panel Intent -->
+        <intent>
+            <action android:name="android.settings.WIFI_SETTINGS" />
         </intent>
     </queries>
 </manifest>

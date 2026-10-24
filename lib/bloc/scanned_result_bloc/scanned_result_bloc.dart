@@ -10,7 +10,6 @@ import 'package:scan_master/utils/get_lauch_url.dart';
 import 'package:screenshot/screenshot.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import 'package:wifi_iot/wifi_iot.dart';
 
 part 'scanned_result_event.dart';
 part 'scanned_result_state.dart';
@@ -18,7 +17,7 @@ part 'scanned_result_state.dart';
 class ScannedResultBloc extends Bloc<ScannedResultEvent, ScannedResultState> {
   ScannedResultBloc(ScannedModel scannedModel)
       : super(ScannedResultState.initial(scannedModel)) {
-    // Handles contextual actions (Open link, Dial, Wi-Fi Connect)
+    // Handles contextual actions (Open link, Dial, Wi-Fi Settings)
     on<OnActionClick>((event, emit) async {
       try {
         final rawValue =
@@ -29,14 +28,12 @@ class ScannedResultBloc extends Bloc<ScannedResultEvent, ScannedResultState> {
             rawValue.toLowerCase().startsWith('upi:')) {
           final upiUri = Uri.parse(rawValue);
 
-          // Attempt launch directly in installed external payment apps
           final launched = await launchUrl(
             upiUri,
             mode: LaunchMode.externalNonBrowserApplication,
           );
 
           if (!launched) {
-            // Fallback: standard external app mode
             final fallbackLaunched = await launchUrl(
               upiUri,
               mode: LaunchMode.externalApplication,
@@ -52,31 +49,47 @@ class ScannedResultBloc extends Bloc<ScannedResultEvent, ScannedResultState> {
           return;
         }
 
-        // 2. Wi-Fi Connect
+        // 2. Wi-Fi: Copy password & open system Wi-Fi settings
         if (event.barcode.type == BarcodeType.wifi) {
-          final ssid = event.barcode.wifi?.ssid;
-          final password = event.barcode.wifi?.password;
+          final ssid = event.barcode.wifi?.ssid ?? 'Wi-Fi';
+          final password = event.barcode.wifi?.password ?? '';
 
-          if (ssid != null && ssid.isNotEmpty) {
-            final connected = await WiFiForIoTPlugin.findAndConnect(
-              ssid,
-              password: password ?? '',
-              joinOnce: false,
-              timeoutInSeconds: 15,
-            );
+          if (password.isNotEmpty) {
+            await Clipboard.setData(ClipboardData(text: password));
+          }
 
-            if (connected) {
-              emit(state.copyWith(
-                actionStatus: ActionStatus.success,
-                message: 'Connected to $ssid',
-              ));
-            } else {
-              emit(state.copyWith(
-                actionStatus: ActionStatus.failure,
-                message:
-                    'Could not connect to $ssid. Check network permissions.',
-              ));
+          // Open Android Wi-Fi settings screen or generic settings fallback
+          final wifiSettingsUri =
+              Uri.parse('package:android.settings.WIFI_SETTINGS');
+          final fallbackSettingsUri =
+              Uri.parse('package:android.settings.SETTINGS');
+
+          bool opened = false;
+          try {
+            if (await canLaunchUrl(wifiSettingsUri)) {
+              opened = await launchUrl(wifiSettingsUri);
             }
+          } catch (_) {}
+
+          if (!opened) {
+            try {
+              if (await canLaunchUrl(fallbackSettingsUri)) {
+                opened = await launchUrl(fallbackSettingsUri);
+              }
+            } catch (_) {}
+          }
+
+          if (password.isNotEmpty) {
+            emit(state.copyWith(
+              actionStatus: ActionStatus.success,
+              message:
+                  'Password copied for "$ssid". Select it in settings to connect.',
+            ));
+          } else {
+            emit(state.copyWith(
+              actionStatus: ActionStatus.success,
+              message: 'Opening Wi-Fi settings for "$ssid"...',
+            ));
           }
           return;
         }

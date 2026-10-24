@@ -15,7 +15,7 @@ String getButtonText(Barcode barcode) {
     BarcodeType.contactInfo => 'Save Contact',
     BarcodeType.sms => 'Send SMS',
     BarcodeType.phone => 'Call Now',
-    BarcodeType.wifi => 'Connect Now',
+    BarcodeType.wifi => 'Copy Password & Open Wi-Fi',
     BarcodeType.url => 'Open in Browser',
     BarcodeType.geo => 'Open in Maps',
     _ => 'Web Search',
