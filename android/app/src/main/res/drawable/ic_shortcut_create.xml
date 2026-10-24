@@ -1,10 +1,29 @@
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24"
-    android:tint="?android:attr/colorControlNormal">
+    android:width="32dp"
+    android:height="32dp"
+    android:viewportWidth="32"
+    android:viewportHeight="32">
+    <!-- QR + Edit creation vector centered in 32x32 -->
     <path
-        android:fillColor="@android:color/white"
-        android:pathData="M3,3v8h8V3H3zM9,9H5V5h4V9zM3,13v8h8v-8H3zM9,19H5v-4h4V19zM13,3v8h8V3H13zM19,9h-4V5h4V9zM18,13h3v2h-3zM13,13h2v2h-2zM15,15h3v3h-3zM13,18h2v3h-2zM18,19h3v2h-3z" />
+        android:fillColor="#FF333333"
+        android:pathData="M6,6v8h8V6H6zM12,12H8V8h4V12z" />
+    <path
+        android:fillColor="#FF333333"
+        android:pathData="M9,9h2v2H9z" />
+    <path
+        android:fillColor="#FF333333"
+        android:pathData="M6,18v8h8v-8H6zM12,24H8v-4h4V24z" />
+    <path
+        android:fillColor="#FF333333"
+        android:pathData="M9,21h2v2H9z" />
+    <path
+        android:fillColor="#FF333333"
+        android:pathData="M18,6v8h8V6H18zM24,12h-4V8h4V12z" />
+    <path
+        android:fillColor="#FF333333"
+        android:pathData="M21,9h2v2h-2z" />
+    <!-- Data Points -->
+    <path
+        android:fillColor="#FF333333"
+        android:pathData="M18,18h3v3h-3zM23,18h3v3h-3zM18,23h3v3h-3zM23,23h3v3h-3z" />
 </vector>
